@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import CanvasEditor from '../components/canvas/CanvasEditor.vue'
 import LayerPanel from '../components/layers/LayerPanel.vue'
+import NewImageDialog from '../components/canvas/NewImageDialog.vue'
 import { useProjectStore } from '../stores/projectStore'
 import { useEditorStore } from '../stores/editorStore'
 import { useHistoryStore } from '../stores/historyStore'
@@ -13,19 +14,22 @@ const history = useHistoryStore()
 const images = computed(() => project.project?.images ?? [])
 const activeImage = computed(() => editor.activeImageId ? project.getImage(editor.activeImageId) ?? null : null)
 
-// When active image changes, sync to history store and default active layer
+const showNewImageDialog = ref(false)
+
 watch(() => editor.activeImageId, (id) => {
   history.setActiveImage(id)
   if (id) {
     const img = project.getImage(id)
-    if (img && img.layers.length > 0 && !editor.activeLayerId) {
-      editor.setActiveLayer(img.layers[0].id)
+    if (img && img.layers.length > 0) {
+      const hasLayer = img.layers.some(l => l.id === editor.activeLayerId)
+      if (!hasLayer) editor.setActiveLayer(img.layers[img.layers.length - 1].id)
     }
   }
 }, { immediate: true })
 
-function newImage() {
-  const img = project.addImage(16, 16, 'New Image')
+function onNewImage(name: string, width: number, height: number) {
+  showNewImageDialog.value = false
+  const img = project.addImage(width, height, name)
   if (!img) return
   editor.setActiveImage(img.id, img.layers[0].id, img.paletteId)
 }
@@ -39,9 +43,8 @@ function selectImage(id: string) {
 
 <template>
   <div class="image-editor-view">
-    <!-- Image selector / toolbar -->
     <div class="image-toolbar">
-      <button class="toolbar-btn" @click="newImage">+ New Image</button>
+      <button class="toolbar-btn" @click="showNewImageDialog = true">+ New Image</button>
       <div class="image-tabs">
         <button
           v-for="img in images"
@@ -54,7 +57,6 @@ function selectImage(id: string) {
       </div>
     </div>
 
-    <!-- Editor area -->
     <div class="editor-area">
       <template v-if="activeImage">
         <CanvasEditor :image-id="activeImage.id" />
@@ -65,10 +67,16 @@ function selectImage(id: string) {
         <button class="toolbar-btn" @click="project.newProject()">New Project</button>
       </div>
       <div v-else class="empty-state">
-        <p>No image selected.</p>
-        <button class="toolbar-btn" @click="newImage">Create a new image</button>
+        <p>No image — create one to start drawing.</p>
+        <button class="toolbar-btn" @click="showNewImageDialog = true">+ New Image</button>
       </div>
     </div>
+
+    <NewImageDialog
+      :open="showNewImageDialog"
+      @confirm="onNewImage"
+      @cancel="showNewImageDialog = false"
+    />
   </div>
 </template>
 
@@ -98,40 +106,26 @@ function selectImage(id: string) {
   color: var(--color-text);
   cursor: pointer;
   font-size: 11px;
+  white-space: nowrap;
 }
-
 .toolbar-btn:hover { background: var(--color-surface-3); }
 
-.image-tabs {
-  display: flex;
-  gap: 2px;
-  overflow-x: auto;
-}
+.image-tabs { display: flex; gap: 2px; overflow-x: auto; }
 
 .image-tab {
   padding: 3px 10px;
   background: none;
   border: 1px solid transparent;
-  border-bottom: none;
   color: var(--color-text-muted);
   cursor: pointer;
   font-size: 11px;
   border-radius: 3px 3px 0 0;
   white-space: nowrap;
 }
-
 .image-tab:hover { color: var(--color-text); background: var(--color-surface-2); }
-.image-tab.active {
-  color: var(--color-text);
-  background: var(--color-surface-2);
-  border-color: var(--color-border);
-}
+.image-tab.active { color: var(--color-text); background: var(--color-surface-2); border-color: var(--color-border); }
 
-.editor-area {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
+.editor-area { display: flex; flex: 1; overflow: hidden; }
 
 .empty-state {
   flex: 1;

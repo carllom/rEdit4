@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, nextTick } from 'vue'
 import { useProjectStore } from '../../stores/projectStore'
 import { useEditorStore } from '../../stores/editorStore'
 import { makeLayer } from '../../domain/color'
+import type { Layer } from '../../domain/model'
 
 const project = useProjectStore()
 const editor = useEditorStore()
@@ -12,6 +13,34 @@ const image = computed(() => {
   return project.getImage(editor.activeImageId) ?? null
 })
 
+// Layers displayed top-to-bottom (topmost layer first)
+const displayLayers = computed(() => image.value ? [...image.value.layers].reverse() : [])
+
+// --- Rename ---
+const renamingId = ref<string | null>(null)
+const renameInput = ref<HTMLInputElement | null>(null)
+
+async function startRename(layer: Layer) {
+  renamingId.value = layer.id
+  await nextTick()
+  renameInput.value?.select()
+}
+
+function commitRename(layer: Layer, value: string) {
+  layer.name = value.trim() || layer.name
+  renamingId.value = null
+  project.markDirty()
+}
+
+function cancelRename() { renamingId.value = null }
+
+// --- Opacity ---
+function setOpacity(layer: Layer, value: number) {
+  layer.opacity = Math.max(0, Math.min(1, value / 100))
+  project.markDirty()
+}
+
+// --- Add / remove / reorder ---
 function addLayer() {
   if (!image.value) return
   const { width, height } = image.value
@@ -31,12 +60,13 @@ function removeLayer(layerId: string) {
   project.markDirty()
 }
 
-function moveLayer(layerId: string, direction: -1 | 1) {
+// direction: 1 = move up visually (increase index in array), -1 = move down
+function moveLayer(layerId: string, direction: 1 | -1) {
   if (!image.value) return
-  const idx = image.value.layers.findIndex(l => l.id === layerId)
-  const newIdx = idx + direction
-  if (newIdx < 0 || newIdx >= image.value.layers.length) return
   const layers = image.value.layers
+  const idx = layers.findIndex(l => l.id === layerId)
+  const newIdx = idx + direction
+  if (newIdx < 0 || newIdx >= layers.length) return
   ;[layers[idx], layers[newIdx]] = [layers[newIdx], layers[idx]]
   project.markDirty()
 }
@@ -48,27 +78,60 @@ function moveLayer(layerId: string, direction: -1 | 1) {
       <span class="section-label">Layers</span>
       <button class="icon-btn" title="Add layer" @click="addLayer">+</button>
     </div>
+
     <div v-if="image" class="layer-list">
-      <!-- Layers shown top-to-bottom = visually top layer first -->
       <div
-        v-for="layer in [...image.layers].reverse()"
+        v-for="layer in displayLayers"
         :key="layer.id"
         :class="['layer-row', { active: editor.activeLayerId === layer.id }]"
         @click="editor.setActiveLayer(layer.id)"
       >
+        <!-- Visibility toggle -->
         <button
           class="vis-btn"
-          :title="layer.visible ? 'Hide layer' : 'Show layer'"
+          :title="layer.visible ? 'Hide' : 'Show'"
           @click.stop="layer.visible = !layer.visible; project.markDirty()"
         >{{ layer.visible ? '●' : '○' }}</button>
-        <span class="layer-name">{{ layer.name }}</span>
+
+        <!-- Name — static or rename input -->
+        <span
+          v-if="renamingId !== layer.id"
+          class="layer-name"
+          @dblclick.stop="startRename(layer)"
+        >{{ layer.name }}</span>
+        <input
+          v-else
+          ref="renameInput"
+          class="rename-input"
+          :value="layer.name"
+          @blur="commitRename(layer, ($event.target as HTMLInputElement).value)"
+          @keydown.enter="commitRename(layer, ($event.target as HTMLInputElement).value)"
+          @keydown.escape="cancelRename"
+          @click.stop
+        />
+
+        <!-- Opacity -->
+        <input
+          class="opacity-input"
+          type="number"
+          min="0"
+          max="100"
+          :value="Math.round(layer.opacity * 100)"
+          title="Opacity %"
+          @change.stop="setOpacity(layer, +($event.target as HTMLInputElement).value)"
+          @click.stop
+        />
+        <span class="opacity-pct">%</span>
+
+        <!-- Reorder / delete -->
         <div class="layer-actions">
           <button class="icon-btn" title="Move up" @click.stop="moveLayer(layer.id, 1)">↑</button>
           <button class="icon-btn" title="Move down" @click.stop="moveLayer(layer.id, -1)">↓</button>
-          <button class="icon-btn danger" title="Delete layer" @click.stop="removeLayer(layer.id)">×</button>
+          <button class="icon-btn danger" title="Delete" @click.stop="removeLayer(layer.id)">×</button>
         </div>
       </div>
     </div>
+
     <div v-else class="no-image">No image selected</div>
   </div>
 </template>
@@ -77,11 +140,12 @@ function moveLayer(layerId: string, direction: -1 | 1) {
 .layer-panel {
   display: flex;
   flex-direction: column;
-  width: 180px;
-  min-width: 180px;
+  width: 220px;
+  min-width: 220px;
   background: var(--color-surface);
   border-left: 1px solid var(--color-border);
   overflow-y: auto;
+  flex-shrink: 0;
 }
 
 .panel-header {
@@ -90,6 +154,7 @@ function moveLayer(layerId: string, direction: -1 | 1) {
   justify-content: space-between;
   padding: 6px 8px 4px;
   border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
 }
 
 .section-label {
@@ -99,34 +164,29 @@ function moveLayer(layerId: string, direction: -1 | 1) {
   color: var(--color-text-muted);
 }
 
-.layer-list {
-  flex: 1;
-  overflow-y: auto;
-}
+.layer-list { flex: 1; overflow-y: auto; }
 
 .layer-row {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   padding: 4px 6px;
   cursor: pointer;
   border-left: 2px solid transparent;
+  min-height: 28px;
 }
-
 .layer-row:hover { background: var(--color-surface-2); }
-.layer-row.active {
-  background: var(--color-surface-2);
-  border-left-color: var(--color-accent);
-}
+.layer-row.active { background: var(--color-surface-2); border-left-color: var(--color-accent); }
 
 .vis-btn {
   background: none;
   border: none;
   color: var(--color-text-muted);
   cursor: pointer;
-  font-size: 11px;
+  font-size: 10px;
   padding: 0 2px;
   width: 14px;
+  flex-shrink: 0;
 }
 
 .layer-name {
@@ -135,14 +195,42 @@ function moveLayer(layerId: string, direction: -1 | 1) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
 }
 
-.layer-actions {
-  display: flex;
-  gap: 2px;
-  opacity: 0;
+.rename-input {
+  flex: 1;
+  background: var(--color-surface-3);
+  border: 1px solid var(--color-accent);
+  border-radius: 2px;
+  color: var(--color-text);
+  font-size: 11px;
+  padding: 1px 4px;
+  outline: none;
+  min-width: 0;
 }
 
+.opacity-input {
+  width: 36px;
+  background: var(--color-surface-3);
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  color: var(--color-text);
+  font-size: 10px;
+  padding: 1px 3px;
+  text-align: right;
+  outline: none;
+  flex-shrink: 0;
+}
+.opacity-input:focus { border-color: var(--color-accent); }
+
+.opacity-pct {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.layer-actions { display: flex; gap: 1px; opacity: 0; flex-shrink: 0; }
 .layer-row:hover .layer-actions { opacity: 1; }
 
 .icon-btn {
@@ -154,13 +242,8 @@ function moveLayer(layerId: string, direction: -1 | 1) {
   padding: 0 3px;
   border-radius: 2px;
 }
-
 .icon-btn:hover { color: var(--color-text); background: var(--color-surface-3); }
 .icon-btn.danger:hover { color: var(--color-danger); }
 
-.no-image {
-  padding: 12px 8px;
-  color: var(--color-text-muted);
-  font-size: 11px;
-}
+.no-image { padding: 12px 8px; color: var(--color-text-muted); font-size: 11px; }
 </style>

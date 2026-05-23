@@ -3,7 +3,8 @@ import { computed } from 'vue'
 import { useProjectStore } from '../../stores/projectStore'
 import { useEditorStore } from '../../stores/editorStore'
 import { usePaintStore } from '../../stores/paintStore'
-import { colorToCSSRGBA } from '../../domain/color'
+import { colorToCSSRGBA, makeColor } from '../../domain/color'
+import ColorEditor from './ColorEditor.vue'
 
 const project = useProjectStore()
 const editor = useEditorStore()
@@ -14,35 +15,63 @@ const palette = computed(() => {
   return project.getPalette(editor.activePaletteId) ?? null
 })
 
-// Colors excluding index 0 (transparent) for display; we still preserve the index offset
 const displayColors = computed(() => {
   if (!palette.value) return []
   return palette.value.colors.slice(1).map((c, i) => ({ color: c, index: i + 1 }))
 })
+
+const selectedColor = computed(() => {
+  if (!palette.value) return null
+  return palette.value.colors[paint.activeColorIndex] ?? null
+})
+
+function addColor() {
+  if (!palette.value) return
+  const color = makeColor('New color')
+  palette.value.colors.push(color)
+  paint.setColorIndex(palette.value.colors.length - 1)
+  project.markDirty()
+}
+
+function onColorChange() {
+  project.markDirty()
+}
 </script>
 
 <template>
   <div class="palette-panel">
     <div class="section-label">Palette</div>
     <div v-if="palette" class="palette-name">{{ palette.name }}</div>
+
     <div v-if="palette" class="swatch-grid">
       <button
         v-for="{ color, index } in displayColors"
         :key="color.id"
         :class="['swatch', { active: paint.activeColorIndex === index }]"
-        :style="{ background: colorToCSSRGBA(color) }"
+        :style="{ '--c': colorToCSSRGBA(color) }"
         :title="`[${index}] ${color.name}`"
         @click="paint.setColorIndex(index)"
       />
     </div>
-    <div v-else class="no-palette">No palette</div>
+
+    <button v-if="palette" class="add-btn" @click="addColor">+ Add color</button>
+
+    <!-- Inline color editor for the selected color -->
+    <ColorEditor
+      v-if="selectedColor"
+      :color="selectedColor"
+      @change="onColorChange"
+    />
+
+    <div v-if="!palette" class="no-palette">No palette</div>
   </div>
 </template>
 
 <style scoped>
 .palette-panel {
   padding: 6px 0;
-  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .section-label {
@@ -72,27 +101,38 @@ const displayColors = computed(() => {
   border-radius: 1px;
   cursor: pointer;
   padding: 0;
-  /* checkerboard hint for transparent-ish colors */
   background-image: linear-gradient(45deg, #555 25%, transparent 25%),
     linear-gradient(-45deg, #555 25%, transparent 25%),
     linear-gradient(45deg, transparent 75%, #555 75%),
     linear-gradient(-45deg, transparent 75%, #555 75%);
   background-size: 6px 6px;
   background-position: 0 0, 0 3px, 3px -3px, -3px 0;
-  background-color: #333;
+  background-color: var(--c, #333);
 }
 
-.swatch:hover {
-  outline: 1px solid var(--color-accent-hover);
-  outline-offset: 1px;
+.swatch::after {
+  content: '';
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--c, transparent);
 }
 
-.swatch.active {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 1px;
-  z-index: 1;
-  position: relative;
+.swatch:hover { outline: 1px solid var(--color-accent-hover); outline-offset: 1px; }
+.swatch.active { outline: 2px solid var(--color-accent); outline-offset: 1px; position: relative; z-index: 1; }
+
+.add-btn {
+  margin: 4px 8px 0;
+  padding: 4px 8px;
+  background: none;
+  border: 1px dashed var(--color-border);
+  border-radius: 3px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 11px;
+  text-align: left;
 }
+.add-btn:hover { color: var(--color-text); border-color: var(--color-accent); }
 
 .no-palette {
   padding: 8px 10px;

@@ -42,8 +42,8 @@ onMounted(redraw)
 onUnmounted(() => { if (rafId !== null) cancelAnimationFrame(rafId) })
 
 // Redraw when layer identity, zoom, or any palette color changes
-watch(() => [props.layer, props.zoom], requestRedraw)
-watch(() => props.palette, requestRedraw, { deep: true })
+watch(() => [props.layer, props.zoom], requestRedraw, { flush: 'post' })
+watch(() => props.palette, requestRedraw, { deep: true, flush: 'post' })
 
 defineExpose({ requestRedraw })
 </script>

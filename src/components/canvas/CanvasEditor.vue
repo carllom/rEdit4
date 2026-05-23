@@ -30,7 +30,7 @@ const bgCanvas = ref<HTMLCanvasElement | null>(null)
 watch([displayW, displayH], () => {
   const ctx = bgCanvas.value?.getContext('2d')
   if (ctx) drawCheckerboard(ctx, displayW.value, displayH.value)
-})
+}, { flush: 'post' })
 onMounted(() => {
   const ctx = bgCanvas.value?.getContext('2d')
   if (ctx) drawCheckerboard(ctx, displayW.value, displayH.value)
@@ -41,7 +41,7 @@ const gridCanvas = ref<HTMLCanvasElement | null>(null)
 watch([displayW, displayH, () => paint.zoom], () => {
   const ctx = gridCanvas.value?.getContext('2d')
   if (ctx) drawGrid(ctx, displayW.value, displayH.value, paint.zoom)
-})
+}, { flush: 'post' })
 onMounted(() => {
   const ctx = gridCanvas.value?.getContext('2d')
   if (ctx) drawGrid(ctx, displayW.value, displayH.value, paint.zoom)
