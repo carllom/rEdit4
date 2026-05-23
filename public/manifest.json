@@ -1,0 +1,16 @@
+{
+  "name": "rEdit",
+  "short_name": "rEdit",
+  "description": "Retro pixel graphics editor, sprite composer, and animation workstation",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#1a1a1a",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
