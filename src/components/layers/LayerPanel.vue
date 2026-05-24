@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch, onUnmounted } from 'vue'
+import { Download, Eye, EyeOff } from '@lucide/vue'
 import { useProjectStore } from '../../stores/projectStore'
 import { useEditorStore } from '../../stores/editorStore'
 import { makeLayer } from '../../domain/color'
@@ -170,7 +171,7 @@ onUnmounted(() => {
             class="vis-btn"
             :title="layer.visible ? 'Hide' : 'Show'"
             @click.stop="layer.visible = !layer.visible; project.markDirty()"
-          >{{ layer.visible ? '●' : '○' }}</button>
+          ><Eye v-if="layer.visible" :size="12" /><EyeOff v-else :size="12" /></button>
 
           <!-- Name — static or rename input -->
           <span
@@ -203,7 +204,7 @@ onUnmounted(() => {
 
           <!-- Actions -->
           <div class="layer-actions">
-            <button class="icon-btn" title="Export layer as PNG" @click.stop="exportLayer(layer)">↓PNG</button>
+            <button class="icon-btn" title="Export layer as PNG" @click.stop="exportLayer(layer)"><Download :size="12" /></button>
             <button class="icon-btn danger" title="Delete" @click.stop="layerToRemoveId = layer.id">×</button>
           </div>
         </div>
