@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { watch, onMounted } from 'vue'
+import { watch, onMounted, ref, nextTick } from 'vue'
 import { RouterView } from 'vue-router'
 import AppSidebar from './components/ui/AppSidebar.vue'
 import { useProjectStore } from './stores/projectStore'
@@ -8,6 +8,27 @@ import { loadProject, saveProject } from './storage/db'
 
 const project = useProjectStore()
 const editor = useEditorStore()
+
+// --- Project rename ---
+const renamingProject = ref(false)
+const renameInput = ref<HTMLInputElement | null>(null)
+
+async function startRename() {
+  if (!project.project) return
+  renamingProject.value = true
+  await nextTick()
+  renameInput.value?.select()
+}
+
+function commitRename(value: string) {
+  if (project.project) {
+    project.project.name = value.trim() || project.project.name
+    project.markDirty()
+  }
+  renamingProject.value = false
+}
+
+function cancelRename() { renamingProject.value = false }
 
 // Startup: load saved project, or auto-create a blank one
 onMounted(async () => {
@@ -50,9 +71,23 @@ watch(() => project.isDirty, (dirty) => {
   <div class="app">
     <header class="app-header">
       <span class="app-title">rEdit</span>
-      <span v-if="project.project" class="project-name">
-        {{ project.project.name }}<span v-if="project.isDirty" class="dirty-marker">*</span>
-      </span>
+      <template v-if="project.project">
+        <input
+          v-if="renamingProject"
+          ref="renameInput"
+          class="project-rename-input"
+          :value="project.project.name"
+          @blur="commitRename(($event.target as HTMLInputElement).value)"
+          @keydown.enter="commitRename(($event.target as HTMLInputElement).value)"
+          @keydown.escape="cancelRename"
+        />
+        <span
+          v-else
+          class="project-name"
+          title="Double-click to rename"
+          @dblclick="startRename"
+        >{{ project.project.name }}<span v-if="project.isDirty" class="dirty-marker">*</span></span>
+      </template>
     </header>
     <div class="app-body">
       <AppSidebar />
@@ -66,6 +101,11 @@ watch(() => project.isDirty, (dirty) => {
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Hide number input spinners globally — keyboard arrows still work */
+input[type='number'] { -moz-appearance: textfield; }
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
 :root {
   --color-bg:           #1e1e1e;
   --color-surface:      #252526;
@@ -77,7 +117,7 @@ watch(() => project.isDirty, (dirty) => {
   --color-accent:       #4fc3f7;
   --color-accent-hover: #81d4fa;
   --color-danger:       #f44747;
-  --sidebar-width:      200px;
+  --sidebar-width:      240px;
   --header-height:      34px;
 }
 
@@ -107,8 +147,18 @@ html, body, #app {
 }
 
 .app-title { font-weight: 700; letter-spacing: 0.08em; color: var(--color-accent); font-size: 13px; }
-.project-name { color: var(--color-text-muted); font-size: 11px; }
+.project-name { color: var(--color-text-muted); font-size: 11px; cursor: default; }
 .dirty-marker { color: var(--color-accent); }
+.project-rename-input {
+  background: var(--color-surface-3);
+  border: 1px solid var(--color-accent);
+  border-radius: 2px;
+  color: var(--color-text);
+  font-size: 11px;
+  padding: 1px 5px;
+  outline: none;
+  width: 160px;
+}
 
 .app-body { display: flex; flex: 1; overflow: hidden; }
 .app-main { flex: 1; overflow: hidden; display: flex; flex-direction: column; }

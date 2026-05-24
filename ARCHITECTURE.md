@@ -345,13 +345,20 @@ Alongside the PNG, generate a CSS file with `background-position` classes per sp
 
 ## Development Phases
 
-### Phase 1 — MVP: Image Editor (current milestone)
-- Project: create, name, save/load via IndexedDB, export to file
-- Palette: create, add/remove/edit colors, select active color
-- Image: create (set size), manage layers (add, remove, reorder, rename, opacity, visibility)
-- Canvas editor: zoom, pan, draw, erase, fill, eyedropper
-- Undo/redo (100 levels)
-- Export layer/image as PNG
+### Phase 1 — MVP: Image Editor ✓ complete
+
+- ✓ Project: create, name, auto-save/load via IndexedDB (debounced 2s) _verified_
+- ✓ Palette: create, add/remove/edit colors (RGBA + hex), select active color; transparent slot (index 0) selectable as draw color
+- ✓ Image: create via dialog (name, width 1–512, height 1–512)
+- ✓ Layers: add, remove, reorder, rename (double-click), opacity (live), visibility toggle
+- ✓ Canvas editor: zoom (scroll wheel, +/− keys, 1–32×), pan (Space+drag, middle mouse)
+- ✓ Draw tool, Erase tool, Flood fill (4-connected, exact index match), Eyedropper
+- ✓ Line tool (Bresenham, Shift-constrain to 45°)
+- ✓ Rectangle tool (outline, Shift-constrain to square)
+- ✓ Undo/redo (100 levels, per-image command stack)
+- ✓ Export image as PNG (composite all visible layers)
+- ✓ Export single layer as PNG
+- ☐ Project file export/import (`.redit` ZIP format) → moved to Phase 5
 
 ### Phase 2 — Sprite Editor
 - Compose images into sprites
@@ -370,11 +377,36 @@ Alongside the PNG, generate a CSS file with `background-position` classes per sp
 - Export sprite sheet PNG + JSON + CSS
 
 ### Phase 5 — Advanced Tools & Export
-- Line and rectangle draw tools
+
 - Color manipulation brush (lighten, darken, saturate, desaturate)
 - Replace color tool
 - Color-use query (which sprites/layers use a given palette slot)
-- Full `.redit` zip project file format
+- Full `.redit` zip project file format (open/save via File System Access API, download fallback)
+- Palette templates and color cycling definitions (separate Palette Manager tab)
+
+---
+
+## Deferred Design Decisions
+
+### Shape Tool Preview Color Mode
+
+Currently the line/rect drag preview fills each cell with the committed palette color plus a white
+outline stroke. A future settings toggle should let the user choose between:
+
+- **Committed color** (current default) — fill = actual palette color, outline = white highlight
+- **Cursor opacity** — fill = semi-transparent white (original cursor style), no color information
+
+When color-manipulation tools (darken, lighten, saturate, desaturate) are added, the preview color
+for a given pixel is no longer a single palette color — it is a function of the existing pixel's
+current color. The `previewColor` prop on `CursorLayer` (currently a single CSS string) will need
+to evolve into a per-pixel color function, e.g.:
+
+```ts
+type PreviewColorFn = (existingIndex: number, palette: Palette) => string
+```
+
+The cursor layer would need access to the underlying layer data to sample existing pixel indices
+and compute the resulting preview color per cell.
 
 ---
 

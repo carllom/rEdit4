@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, nextTick } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useProjectStore } from '../../stores/projectStore'
 import { useEditorStore } from '../../stores/editorStore'
 import { makeLayer } from '../../domain/color'
@@ -18,13 +18,14 @@ const displayLayers = computed(() => image.value ? [...image.value.layers].rever
 
 // --- Rename ---
 const renamingId = ref<string | null>(null)
-const renameInput = ref<HTMLInputElement | null>(null)
 
-async function startRename(layer: Layer) {
-  renamingId.value = layer.id
-  await nextTick()
-  renameInput.value?.select()
-}
+function startRename(layer: Layer) { renamingId.value = layer.id }
+
+// After DOM updates, focus+select the rename input (only one exists at a time)
+watch(renamingId, (id) => {
+  if (!id) return
+  document.querySelector<HTMLInputElement>('.rename-input')?.select()
+}, { flush: 'post' })
 
 function commitRename(layer: Layer, value: string) {
   layer.name = value.trim() || layer.name
@@ -101,7 +102,6 @@ function moveLayer(layerId: string, direction: 1 | -1) {
         >{{ layer.name }}</span>
         <input
           v-else
-          ref="renameInput"
           class="rename-input"
           :value="layer.name"
           @blur="commitRename(layer, ($event.target as HTMLInputElement).value)"
@@ -118,7 +118,7 @@ function moveLayer(layerId: string, direction: 1 | -1) {
           max="100"
           :value="Math.round(layer.opacity * 100)"
           title="Opacity %"
-          @change.stop="setOpacity(layer, +($event.target as HTMLInputElement).value)"
+          @input.stop="setOpacity(layer, +($event.target as HTMLInputElement).value)"
           @click.stop
         />
         <span class="opacity-pct">%</span>
@@ -140,8 +140,8 @@ function moveLayer(layerId: string, direction: 1 | -1) {
 .layer-panel {
   display: flex;
   flex-direction: column;
-  width: 220px;
-  min-width: 220px;
+  width: 240px;
+  min-width: 240px;
   background: var(--color-surface);
   border-left: 1px solid var(--color-border);
   overflow-y: auto;
@@ -211,7 +211,7 @@ function moveLayer(layerId: string, direction: 1 | -1) {
 }
 
 .opacity-input {
-  width: 36px;
+  width: 46px;
   background: var(--color-surface-3);
   border: 1px solid var(--color-border);
   border-radius: 2px;

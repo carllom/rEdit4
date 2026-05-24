@@ -17,7 +17,7 @@ const palette = computed(() => {
 
 const displayColors = computed(() => {
   if (!palette.value) return []
-  return palette.value.colors.slice(1).map((c, i) => ({ color: c, index: i + 1 }))
+  return palette.value.colors.map((c, i) => ({ color: c, index: i }))
 })
 
 const selectedColor = computed(() => {
@@ -56,9 +56,9 @@ function onColorChange() {
 
     <button v-if="palette" class="add-btn" @click="addColor">+ Add color</button>
 
-    <!-- Inline color editor for the selected color -->
+    <!-- Inline color editor for the selected color (not shown for transparent index 0) -->
     <ColorEditor
-      v-if="selectedColor"
+      v-if="selectedColor && paint.activeColorIndex !== 0"
       :color="selectedColor"
       @change="onColorChange"
     />

@@ -6,9 +6,12 @@ import { useProjectStore } from '../../stores/projectStore'
 import { useEditorStore } from '../../stores/editorStore'
 import { usePaintStore } from '../../stores/paintStore'
 import { useHistoryStore } from '../../stores/historyStore'
-import { screenToPixel, inBounds, linearIndex } from '../../renderer/viewport'
+import { inBounds, linearIndex } from '../../renderer/viewport'
 import { drawCheckerboard, drawGrid } from '../../renderer/layerRenderer'
 import { floodFill } from '../../renderer/tools/fillTool'
+import { applyLine } from '../../renderer/tools/lineTool'
+import { applyRect } from '../../renderer/tools/rectTool'
+import { colorToCSSRGBA } from '../../domain/color'
 import type { Point } from '../../domain/model'
 
 const props = defineProps<{ imageId: string }>()
@@ -21,6 +24,11 @@ const history = useHistoryStore()
 const image = computed(() => project.getImage(props.imageId))
 const palette = computed(() => image.value ? project.getPalette(image.value.paletteId) ?? null : null)
 const activeLayer = computed(() => image.value?.layers.find(l => l.id === editor.activeLayerId))
+
+const previewColor = computed(() => {
+  const color = palette.value?.colors[paint.activeColorIndex]
+  return color ? colorToCSSRGBA(color) : 'rgba(255,255,255,0.8)'
+})
 
 const displayW = computed(() => (image.value?.width ?? 0) * paint.zoom)
 const displayH = computed(() => (image.value?.height ?? 0) * paint.zoom)
@@ -109,9 +117,42 @@ function applyFill(pixel: Point) {
   project.markDirty()
 }
 
+// Track drag endpoints for shape tools
+let shapeStart: Point | null = null
+let shapeEnd: Point | null = null
+
+function isShapeTool() { return paint.activeTool === 'line' || paint.activeTool === 'rect' }
+
+function applyShape() {
+  const img = image.value
+  const layer = activeLayer.value
+  if (!img || !layer || !layer.visible || !shapeStart || !shapeEnd) return
+
+  const colorIdx = paint.activeColorIndex
+  let diffs
+  if (paint.activeTool === 'line') {
+    diffs = applyLine(layer.data, img.width, img.height, shapeStart.x, shapeStart.y, shapeEnd.x, shapeEnd.y, colorIdx)
+  } else {
+    diffs = applyRect(layer.data, img.width, img.height, shapeStart.x, shapeStart.y, shapeEnd.x, shapeEnd.y, colorIdx)
+  }
+  if (diffs.length === 0) return
+
+  history.beginStroke(props.imageId, layer.id, paint.activeTool)
+  diffs.forEach(d => history.recordPixel(props.imageId, linearIndex(d.x, d.y, img.width), d.x, d.y, d.oldIndex, d.newIndex))
+  history.commitStroke(props.imageId)
+  requestLayerRedraw(layer.id)
+  project.markDirty()
+}
+
 function onPixelPress(pixel: Point) {
   if (paint.activeTool === 'fill') {
     applyFill(pixel)
+    return
+  }
+  if (isShapeTool()) {
+    shapeStart = { ...pixel }
+    shapeEnd = { ...pixel }
+    paint.isDrawing = true
     return
   }
   paint.isDrawing = true
@@ -121,12 +162,22 @@ function onPixelPress(pixel: Point) {
 
 function onPixelDrag(pixel: Point) {
   if (!paint.isDrawing) return
+  if (isShapeTool()) {
+    shapeEnd = { ...pixel }
+    return
+  }
   applyTool(pixel)
 }
 
 function onPixelRelease() {
   if (!paint.isDrawing) return
   paint.isDrawing = false
+  if (isShapeTool()) {
+    applyShape()
+    shapeStart = null
+    shapeEnd = null
+    return
+  }
   history.commitStroke(props.imageId)
 }
 
@@ -168,6 +219,7 @@ function zoomOut() {
 
 function onWheel(e: WheelEvent) {
   e.preventDefault()
+  if (paint.isDrawing) return
   if (e.deltaY < 0) zoomIn(); else zoomOut()
 }
 
@@ -275,6 +327,7 @@ watch(() => paint.zoom, requestAllLayersRedraw)
           :pan-x="paint.panX"
           :pan-y="paint.panY"
           :active-tool="paint.activeTool"
+          :preview-color="previewColor"
           style="z-index:3"
           @pixel-press="onPixelPress"
           @pixel-drag="onPixelDrag"

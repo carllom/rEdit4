@@ -34,7 +34,9 @@ function serializeProject(project: Project): object {
 export async function saveProject(project: Project): Promise<void> {
   const store = await db()
   const tx = store.transaction([STORE_PROJECT, STORE_LAYERS], 'readwrite')
-  tx.objectStore(STORE_PROJECT).put(serializeProject(project), PROJECT_KEY)
+  // JSON round-trip strips Vue reactive Proxy wrappers — IDB structured clone can't handle them
+  const meta = JSON.parse(JSON.stringify(serializeProject(project)))
+  tx.objectStore(STORE_PROJECT).put(meta, PROJECT_KEY)
   for (const image of project.images) {
     for (const layer of image.layers) {
       tx.objectStore(STORE_LAYERS).put(layer.data, layer.id)

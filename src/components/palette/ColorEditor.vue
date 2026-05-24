@@ -123,7 +123,7 @@ function setA(v: number) { props.color.a = clamp(v); emit('change') }
 }
 
 .channel-num {
-  width: 38px;
+  width: 46px;
   background: var(--color-surface-3);
   border: 1px solid var(--color-border);
   border-radius: 3px;
