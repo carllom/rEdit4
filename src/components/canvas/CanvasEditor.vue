@@ -145,6 +145,7 @@ function applyShape() {
 }
 
 function onPixelPress(pixel: Point) {
+  if (isPanMode.value) return
   if (paint.activeTool === 'fill') {
     applyFill(pixel)
     return
@@ -161,7 +162,7 @@ function onPixelPress(pixel: Point) {
 }
 
 function onPixelDrag(pixel: Point) {
-  if (!paint.isDrawing) return
+  if (isPanMode.value || !paint.isDrawing) return
   if (isShapeTool()) {
     shapeEnd = { ...pixel }
     return
@@ -224,33 +225,32 @@ function onWheel(e: WheelEvent) {
 }
 
 // --- Pan (Space+drag and middle-mouse drag) ---
-let isPanMode = false
-let isPanning = false
-let panAnchorX = 0
-let panAnchorY = 0
+const isPanMode = ref(false)
+const isPanning = ref(false)
 let panStartX = 0
 let panStartY = 0
+let panAnchorScrollX = 0
+let panAnchorScrollY = 0
 
 function startPan(screenX: number, screenY: number) {
-  isPanning = true
-  panAnchorX = paint.panX
-  panAnchorY = paint.panY
+  isPanning.value = true
   panStartX = screenX
   panStartY = screenY
+  panAnchorScrollX = viewport.value?.scrollLeft ?? 0
+  panAnchorScrollY = viewport.value?.scrollTop ?? 0
 }
 
 function updatePan(screenX: number, screenY: number) {
-  if (!isPanning) return
-  const dx = Math.round((panStartX - screenX) / paint.zoom)
-  const dy = Math.round((panStartY - screenY) / paint.zoom)
-  paint.setPan(panAnchorX + dx, panAnchorY + dy)
+  if (!isPanning.value || !viewport.value) return
+  viewport.value.scrollLeft = panAnchorScrollX + (panStartX - screenX)
+  viewport.value.scrollTop  = panAnchorScrollY + (panStartY - screenY)
 }
 
-function stopPan() { isPanning = false }
+function stopPan() { isPanning.value = false }
 
 // --- Keyboard ---
 function onKeydown(e: KeyboardEvent) {
-  if (e.code === 'Space') { isPanMode = true; e.preventDefault(); return }
+  if (e.code === 'Space') { isPanMode.value = true; e.preventDefault(); return }
   if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) { e.preventDefault(); applyUndo(); return }
   if ((e.key === 'y' && (e.ctrlKey || e.metaKey)) || (e.key === 'z' && (e.ctrlKey || e.metaKey) && e.shiftKey)) { e.preventDefault(); applyRedo(); return }
   if (e.key === '=' || e.key === '+') { zoomIn(); return }
@@ -261,12 +261,12 @@ function onKeydown(e: KeyboardEvent) {
   }
 }
 function onKeyup(e: KeyboardEvent) {
-  if (e.code === 'Space') { isPanMode = false; if (isPanning) stopPan() }
+  if (e.code === 'Space') { isPanMode.value = false; if (isPanning.value) stopPan() }
 }
 
 // Viewport mouse events for pan
 function onViewportMousedown(e: MouseEvent) {
-  if (e.button === 1 || (e.button === 0 && isPanMode)) {
+  if (e.button === 1 || (e.button === 0 && isPanMode.value)) {
     e.preventDefault()
     startPan(e.clientX, e.clientY)
   }
@@ -324,9 +324,9 @@ watch(() => paint.zoom, requestAllLayersRedraw)
           :width="image?.width ?? 0"
           :height="image?.height ?? 0"
           :zoom="paint.zoom"
-          :pan-x="paint.panX"
-          :pan-y="paint.panY"
           :active-tool="paint.activeTool"
+          :pan-mode="isPanMode"
+          :is-panning="isPanning"
           :preview-color="previewColor"
           style="z-index:3"
           @pixel-press="onPixelPress"

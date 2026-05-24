@@ -348,10 +348,10 @@ Alongside the PNG, generate a CSS file with `background-position` classes per sp
 ### Phase 1 — MVP: Image Editor ✓ complete
 
 - ✓ Project: create, name, auto-save/load via IndexedDB (debounced 2s) _verified_
-- ✓ Palette: create, add/remove/edit colors (RGBA + hex), select active color; transparent slot (index 0) selectable as draw color
-- ✓ Image: create via dialog (name, width 1–512, height 1–512)
-- ✓ Layers: add, remove, reorder, rename (double-click), opacity (live), visibility toggle
-- ✓ Canvas editor: zoom (scroll wheel, +/− keys, 1–32×), pan (Space+drag, middle mouse)
+- ✓ Palette: create, add/edit colors (RGBA + hex), select active color; transparent slot (index 0) selectable as draw color. Remove/delete deferred. _verified_
+- ✓ Image: create via dialog (name, width 1–512, height 1–512) _verified_
+- ✓ Layers: add, remove, reorder, rename (double-click), opacity (live), visibility toggle _verified_
+- ✓ Canvas editor: zoom (scroll wheel, +/− keys, 1–32×), pan (Space+drag, middle mouse) _verified_
 - ✓ Draw tool, Erase tool, Flood fill (4-connected, exact index match), Eyedropper
 - ✓ Line tool (Bresenham, Shift-constrain to 45°)
 - ✓ Rectangle tool (outline, Shift-constrain to square)
@@ -407,6 +407,20 @@ type PreviewColorFn = (existingIndex: number, palette: Palette) => string
 
 The cursor layer would need access to the underlying layer data to sample existing pixel indices
 and compute the resulting preview color per cell.
+
+### Palette Color Removal — Index Remapping
+
+Removing a color from the palette shifts every subsequent palette index down by one, which can
+corrupt pixel data in all layers across all images. Two options under consideration:
+
+- **Remap on delete** — scan all layers in all images: pixels at the removed index → 0
+  (transparent), pixels at index > removed → index − 1. Pixel data stays consistent.
+  Cost: O(width × height × layers × images). Each affected layer produces a undo `Command`.
+- **No remap** — splice the color out. Any pixel using that index silently points to a
+  different color. Simple, but quietly corrupts existing artwork.
+
+Leaning toward **remap on delete** given the palette-indexed model, but deferred pending decision.
+Also consider: should the remove action be blocked if any pixel in any layer uses that index?
 
 ---
 

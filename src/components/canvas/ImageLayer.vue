@@ -29,7 +29,9 @@ function redraw() {
   const ctx = canvas.getContext('2d')!
   ctx.imageSmoothingEnabled = false
   ctx.clearRect(0, 0, canvas.width, canvas.height)
+  ctx.globalAlpha = layer.visible ? layer.opacity : 0
   ctx.drawImage(offscreen, 0, 0, canvas.width, canvas.height)
+  ctx.globalAlpha = 1
   rafId = null
 }
 
@@ -41,8 +43,8 @@ function requestRedraw() {
 onMounted(redraw)
 onUnmounted(() => { if (rafId !== null) cancelAnimationFrame(rafId) })
 
-// Redraw when layer identity, zoom, or any palette color changes
 watch(() => [props.layer, props.zoom], requestRedraw, { flush: 'post' })
+watch(() => [props.layer.opacity, props.layer.visible], requestRedraw, { flush: 'post' })
 watch(() => props.palette, requestRedraw, { deep: true, flush: 'post' })
 
 defineExpose({ requestRedraw })
@@ -53,6 +55,5 @@ defineExpose({ requestRedraw })
     ref="displayCanvas"
     :width="width * zoom"
     :height="height * zoom"
-    :style="{ opacity: layer.visible ? layer.opacity : 0 }"
   />
 </template>

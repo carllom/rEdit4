@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { screenToPixel } from '../../renderer/viewport'
 import { bresenhamLine } from '../../renderer/tools/lineTool'
 import { rectOutlinePoints } from '../../renderer/tools/rectTool'
@@ -10,9 +10,9 @@ const props = defineProps<{
   width: number
   height: number
   zoom: number
-  panX: number
-  panY: number
   activeTool: Tool
+  panMode: boolean
+  isPanning: boolean
   previewColor: string   // CSS color string for shape tool preview fill
 }>()
 
@@ -24,14 +24,20 @@ const emit = defineEmits<{
 
 const canvas = ref<HTMLCanvasElement | null>(null)
 let lastCell: Point = { x: -1, y: -1 }
-let isDown = false
+const isDown = ref(false)
 let dragStart: Point | null = null
 let shiftHeld = false
+
+const cursor = computed(() => {
+  if (props.isPanning) return 'grabbing'
+  if (props.panMode) return 'grab'
+  return 'crosshair'
+})
 
 function isShapeTool() { return props.activeTool === 'line' || props.activeTool === 'rect' }
 
 function getCell(e: MouseEvent): Point {
-  return screenToPixel(e.offsetX, e.offsetY, props.zoom, props.panX, props.panY)
+  return screenToPixel(e.offsetX, e.offsetY, props.zoom)
 }
 
 function cellChanged(p: Point): boolean {
@@ -124,7 +130,7 @@ function drawCursor(cell: Point, clear = false) {
 function onMouseMove(e: MouseEvent) {
   shiftHeld = e.shiftKey
   const cell = getCell(e)
-  if (isShapeTool() && isDown && dragStart) {
+  if (isShapeTool() && isDown.value && dragStart) {
     drawShapePreview(cell)
     lastCell = { ...cell }
     emit('pixelDrag', effectiveEnd(cell))
@@ -132,16 +138,16 @@ function onMouseMove(e: MouseEvent) {
   }
   if (cellChanged(cell)) {
     drawCursor(cell)
-    if (isDown) emit('pixelDrag', cell)
+    if (isDown.value) emit('pixelDrag', cell)
   }
 }
 
 function onMouseDown(e: MouseEvent) {
   if (e.button !== 0) return
   shiftHeld = e.shiftKey
-  isDown = true
+  isDown.value = true
   const cell = getCell(e)
-  if (isShapeTool()) {
+  if (isShapeTool() && !props.panMode) {
     dragStart = { ...cell }
     drawShapePreview(cell)
   }
@@ -150,10 +156,9 @@ function onMouseDown(e: MouseEvent) {
 
 function onMouseUp(e: MouseEvent) {
   shiftHeld = e.shiftKey
-  isDown = false
+  isDown.value = false
   if (isShapeTool() && dragStart) {
     const cell = getCell(e)
-    const eff = effectiveEnd(cell)
     clearCanvas()
     dragStart = null
     lastCell = { x: -1, y: -1 }
@@ -171,12 +176,12 @@ function onMouseLeave() {
     clearCanvas()
     dragStart = null
     lastCell = { x: -1, y: -1 }
-    isDown = false
+    isDown.value = false
     emit('pixelRelease')
     return
   }
   drawCursor({ x: -1, y: -1 }, true)
-  if (isDown) { isDown = false; emit('pixelRelease') }
+  if (isDown.value) { isDown.value = false; emit('pixelRelease') }
 }
 
 onMounted(() => {
@@ -194,6 +199,6 @@ onMounted(() => {
     ref="canvas"
     :width="width * zoom"
     :height="height * zoom"
-    style="cursor: crosshair"
+    :style="{ cursor }"
   />
 </template>
