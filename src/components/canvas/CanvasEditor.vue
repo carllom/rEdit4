@@ -327,12 +327,31 @@ function reCenter() {
 
 // --- Keyboard ---
 function onKeydown(e: KeyboardEvent) {
-  if (e.code === 'Space')   { isPanMode.value = true; e.preventDefault(); return }
-  if (e.code === 'Home')    { reCenter(); return }
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+  if (e.code === 'Space')               { isPanMode.value = true; e.preventDefault(); return }
+  if (e.code === 'Home' && !e.altKey)   { reCenter(); return }
   if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) { e.preventDefault(); applyUndo(); return }
   if ((e.key === 'y' && (e.ctrlKey || e.metaKey)) || (e.key === 'z' && (e.ctrlKey || e.metaKey) && e.shiftKey)) { e.preventDefault(); applyRedo(); return }
   if (e.key === '=' || e.key === '+') { zoomIn(); return }
   if (e.key === '-')                  { zoomOut(); return }
+  if (e.altKey && (e.code === 'PageUp' || e.code === 'PageDown' || e.code === 'Home' || e.code === 'End')) {
+    e.preventDefault()
+    const img = image.value
+    if (img && editor.activeLayerId) {
+      const layers = img.layers
+      const fromIdx = layers.findIndex(l => l.id === editor.activeLayerId)
+      if (fromIdx !== -1) {
+        const n = layers.length
+        let toIdx = fromIdx
+        if (e.code === 'PageUp')   toIdx = Math.min(fromIdx + 1, n - 1)
+        if (e.code === 'PageDown') toIdx = Math.max(fromIdx - 1, 0)
+        if (e.code === 'Home')     toIdx = n - 1
+        if (e.code === 'End')      toIdx = 0
+        project.reorderLayer(props.imageId, fromIdx, toIdx)
+      }
+    }
+    return
+  }
   const toolKeys: Record<string, string> = { d: 'draw', e: 'erase', f: 'fill', i: 'eyedropper', l: 'line', r: 'rect' }
   if (!e.ctrlKey && !e.metaKey && toolKeys[e.key.toLowerCase()]) {
     paint.setTool(toolKeys[e.key.toLowerCase()] as Parameters<typeof paint.setTool>[0])

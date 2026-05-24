@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onUnmounted } from 'vue'
 import { useProjectStore } from '../../stores/projectStore'
 import { useEditorStore } from '../../stores/editorStore'
 import { makeLayer } from '../../domain/color'
@@ -23,7 +23,6 @@ const renamingId = ref<string | null>(null)
 
 function startRename(layer: Layer) { renamingId.value = layer.id }
 
-// After DOM updates, focus+select the rename input (only one exists at a time)
 watch(renamingId, (id) => {
   if (!id) return
   document.querySelector<HTMLInputElement>('.rename-input')?.select()
@@ -43,7 +42,7 @@ function setOpacity(layer: Layer, value: number) {
   project.markDirty()
 }
 
-// --- Add / remove / reorder ---
+// --- Add / remove ---
 function addLayer() {
   if (!image.value) return
   const { width, height } = image.value
@@ -74,16 +73,64 @@ async function exportLayer(layer: Layer) {
   downloadBlob(blob, `${img.name}_${layer.name}.png`)
 }
 
-// direction: 1 = move up visually (increase index in array), -1 = move down
-function moveLayer(layerId: string, direction: 1 | -1) {
-  if (!image.value) return
-  const layers = image.value.layers
-  const idx = layers.findIndex(l => l.id === layerId)
-  const newIdx = idx + direction
-  if (newIdx < 0 || newIdx >= layers.length) return
-  ;[layers[idx], layers[newIdx]] = [layers[newIdx], layers[idx]]
-  project.markDirty()
+// --- Drag reorder ---
+const listEl = ref<HTMLElement | null>(null)
+const dragLayerId = ref<string | null>(null)
+const dragOverIndex = ref<number | null>(null)
+
+function onDragStart(e: PointerEvent, layer: Layer) {
+  e.preventDefault()
+  dragLayerId.value = layer.id
+  dragOverIndex.value = displayLayers.value.findIndex(l => l.id === layer.id)
+  window.addEventListener('pointermove', onDragMove)
+  window.addEventListener('pointerup', onDragEnd, { once: true })
+  window.addEventListener('pointercancel', onDragCancel, { once: true })
 }
+
+function onDragMove(e: PointerEvent) {
+  if (!listEl.value || !dragLayerId.value) return
+  const rows = listEl.value.querySelectorAll<HTMLElement>('.layer-row')
+  let insertIndex = displayLayers.value.length
+  for (let i = 0; i < rows.length; i++) {
+    const rect = rows[i].getBoundingClientRect()
+    if (e.clientY < rect.top + rect.height / 2) {
+      insertIndex = i
+      break
+    }
+  }
+  dragOverIndex.value = insertIndex
+}
+
+function onDragEnd() {
+  window.removeEventListener('pointermove', onDragMove)
+  const img = image.value
+  if (img && dragLayerId.value && dragOverIndex.value !== null) {
+    const fromDisplayIdx = displayLayers.value.findIndex(l => l.id === dragLayerId.value)
+    const di = dragOverIndex.value
+    // di === fromDisplayIdx or fromDisplayIdx+1 means no movement
+    if (fromDisplayIdx !== -1 && di !== fromDisplayIdx && di !== fromDisplayIdx + 1) {
+      const n = img.layers.length
+      const fromInternal = n - 1 - fromDisplayIdx
+      const targetDisplayIdx = di <= fromDisplayIdx ? di : di - 1
+      const toInternal = n - 1 - targetDisplayIdx
+      project.reorderLayer(img.id, fromInternal, toInternal)
+    }
+  }
+  dragLayerId.value = null
+  dragOverIndex.value = null
+}
+
+function onDragCancel() {
+  window.removeEventListener('pointermove', onDragMove)
+  dragLayerId.value = null
+  dragOverIndex.value = null
+}
+
+onUnmounted(() => {
+  window.removeEventListener('pointermove', onDragMove)
+  window.removeEventListener('pointerup', onDragEnd)
+  window.removeEventListener('pointercancel', onDragCancel)
+})
 </script>
 
 <template>
@@ -93,57 +140,64 @@ function moveLayer(layerId: string, direction: 1 | -1) {
       <button class="icon-btn" title="Add layer" @click="addLayer">+</button>
     </div>
 
-    <div v-if="image" class="layer-list">
-      <div
-        v-for="layer in displayLayers"
-        :key="layer.id"
-        :class="['layer-row', { active: editor.activeLayerId === layer.id }]"
-        @click="editor.setActiveLayer(layer.id)"
-      >
-        <!-- Visibility toggle -->
-        <button
-          class="vis-btn"
-          :title="layer.visible ? 'Hide' : 'Show'"
-          @click.stop="layer.visible = !layer.visible; project.markDirty()"
-        >{{ layer.visible ? '●' : '○' }}</button>
+    <div v-if="image" class="layer-list" ref="listEl">
+      <template v-for="(layer, i) in displayLayers" :key="layer.id">
+        <div class="drop-line" :class="{ active: dragLayerId && dragOverIndex === i }" />
+        <div
+          :class="['layer-row', { active: editor.activeLayerId === layer.id, dragging: dragLayerId === layer.id }]"
+          @click="editor.setActiveLayer(layer.id)"
+        >
+          <!-- Drag handle -->
+          <span
+            class="drag-handle"
+            title="Drag to reorder"
+            @pointerdown.stop="onDragStart($event, layer)"
+          >⠿</span>
 
-        <!-- Name — static or rename input -->
-        <span
-          v-if="renamingId !== layer.id"
-          class="layer-name"
-          @dblclick.stop="startRename(layer)"
-        >{{ layer.name }}</span>
-        <input
-          v-else
-          class="rename-input"
-          :value="layer.name"
-          @blur="commitRename(layer, ($event.target as HTMLInputElement).value)"
-          @keydown.enter="commitRename(layer, ($event.target as HTMLInputElement).value)"
-          @keydown.escape="cancelRename"
-          @click.stop
-        />
+          <!-- Visibility toggle -->
+          <button
+            class="vis-btn"
+            :title="layer.visible ? 'Hide' : 'Show'"
+            @click.stop="layer.visible = !layer.visible; project.markDirty()"
+          >{{ layer.visible ? '●' : '○' }}</button>
 
-        <!-- Opacity -->
-        <NumericInput
-          class="opacity-input"
-          :min="0"
-          :max="100"
-          :modelValue="Math.round(layer.opacity * 100)"
-          title="Opacity %"
-          @update:modelValue="v => setOpacity(layer, v)"
-          @click.stop
-          @pointerdown.stop
-        />
-        <span class="opacity-pct">%</span>
+          <!-- Name — static or rename input -->
+          <span
+            v-if="renamingId !== layer.id"
+            class="layer-name"
+            @dblclick.stop="startRename(layer)"
+          >{{ layer.name }}</span>
+          <input
+            v-else
+            class="rename-input"
+            :value="layer.name"
+            @blur="commitRename(layer, ($event.target as HTMLInputElement).value)"
+            @keydown.enter="commitRename(layer, ($event.target as HTMLInputElement).value)"
+            @keydown.escape="cancelRename"
+            @click.stop
+          />
 
-        <!-- Reorder / delete -->
-        <div class="layer-actions">
-          <button class="icon-btn" title="Move up" @click.stop="moveLayer(layer.id, 1)">↑</button>
-          <button class="icon-btn" title="Move down" @click.stop="moveLayer(layer.id, -1)">↓</button>
-          <button class="icon-btn" title="Export layer as PNG" @click.stop="exportLayer(layer)">↓PNG</button>
-          <button class="icon-btn danger" title="Delete" @click.stop="removeLayer(layer.id)">×</button>
+          <!-- Opacity -->
+          <NumericInput
+            class="opacity-input"
+            :min="0"
+            :max="100"
+            :modelValue="Math.round(layer.opacity * 100)"
+            title="Opacity %"
+            @update:modelValue="v => setOpacity(layer, v)"
+            @click.stop
+            @pointerdown.stop
+          />
+          <span class="opacity-pct">%</span>
+
+          <!-- Actions -->
+          <div class="layer-actions">
+            <button class="icon-btn" title="Export layer as PNG" @click.stop="exportLayer(layer)">↓PNG</button>
+            <button class="icon-btn danger" title="Delete" @click.stop="removeLayer(layer.id)">×</button>
+          </div>
         </div>
-      </div>
+      </template>
+      <div class="drop-line" :class="{ active: dragLayerId && dragOverIndex === displayLayers.length }" />
     </div>
 
     <div v-else class="no-image">No image selected</div>
@@ -180,6 +234,18 @@ function moveLayer(layerId: string, direction: 1 | -1) {
 
 .layer-list { flex: 1; overflow-y: auto; }
 
+.drop-line {
+  height: 0;
+  margin: 0;
+  background: transparent;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+.drop-line.active {
+  height: 2px;
+  background: var(--color-accent);
+}
+
 .layer-row {
   display: flex;
   align-items: center;
@@ -191,6 +257,20 @@ function moveLayer(layerId: string, direction: 1 | -1) {
 }
 .layer-row:hover { background: var(--color-surface-2); }
 .layer-row.active { background: var(--color-surface-2); border-left-color: var(--color-accent); }
+.layer-row.dragging { opacity: 0.4; }
+
+.drag-handle {
+  color: var(--color-text-muted);
+  cursor: grab;
+  font-size: 12px;
+  padding: 0 1px;
+  flex-shrink: 0;
+  opacity: 0;
+  user-select: none;
+  line-height: 1;
+}
+.layer-row:hover .drag-handle { opacity: 1; }
+.layer-row.dragging .drag-handle { cursor: grabbing; }
 
 .vis-btn {
   background: none;

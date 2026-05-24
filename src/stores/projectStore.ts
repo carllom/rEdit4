@@ -47,8 +47,18 @@ export const useProjectStore = defineStore('project', () => {
     isDirty.value = true
   }
 
+  function reorderLayer(imageId: string, fromIdx: number, toIdx: number): void {
+    const img = getImage(imageId)
+    if (!img) return
+    const layers = img.layers
+    if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0 || fromIdx >= layers.length || toIdx >= layers.length) return
+    const [item] = layers.splice(fromIdx, 1)
+    layers.splice(toIdx, 0, item)
+    isDirty.value = true
+  }
+
   function markDirty() { isDirty.value = true }
   function markClean() { isDirty.value = false }
 
-  return { project, isDirty, hasProject, newProject, addImage, removeImage, getPalette, getImage, markDirty, markClean }
+  return { project, isDirty, hasProject, newProject, addImage, removeImage, getPalette, getImage, reorderLayer, markDirty, markClean }
 })
