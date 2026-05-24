@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import type { Color } from '../../domain/model'
 import { colorToCSSHex } from '../../domain/color'
+import NumericInput from '../ui/NumericInput.vue'
 
 const props = defineProps<{ color: Color }>()
 const emit = defineEmits<{ change: [] }>()
@@ -36,23 +37,19 @@ function setA(v: number) { props.color.a = clamp(v); emit('change') }
     </div>
     <div class="channel-row">
       <span class="channel-label">R</span>
-      <input class="channel-slider" type="range" min="0" max="255" :value="color.r" @input="setR(+($event.target as HTMLInputElement).value)" />
-      <input class="channel-num" type="number" min="0" max="255" :value="color.r" @change="setR(+($event.target as HTMLInputElement).value)" />
+      <NumericInput class="channel-num" :min="0" :max="255" :modelValue="color.r" @update:modelValue="setR" />
     </div>
     <div class="channel-row">
       <span class="channel-label">G</span>
-      <input class="channel-slider" type="range" min="0" max="255" :value="color.g" @input="setG(+($event.target as HTMLInputElement).value)" />
-      <input class="channel-num" type="number" min="0" max="255" :value="color.g" @change="setG(+($event.target as HTMLInputElement).value)" />
+      <NumericInput class="channel-num" :min="0" :max="255" :modelValue="color.g" @update:modelValue="setG" />
     </div>
     <div class="channel-row">
       <span class="channel-label">B</span>
-      <input class="channel-slider" type="range" min="0" max="255" :value="color.b" @input="setB(+($event.target as HTMLInputElement).value)" />
-      <input class="channel-num" type="number" min="0" max="255" :value="color.b" @change="setB(+($event.target as HTMLInputElement).value)" />
+      <NumericInput class="channel-num" :min="0" :max="255" :modelValue="color.b" @update:modelValue="setB" />
     </div>
     <div class="channel-row">
       <span class="channel-label">A</span>
-      <input class="channel-slider" type="range" min="0" max="255" :value="color.a" @input="setA(+($event.target as HTMLInputElement).value)" />
-      <input class="channel-num" type="number" min="0" max="255" :value="color.a" @change="setA(+($event.target as HTMLInputElement).value)" />
+      <NumericInput class="channel-num" :min="0" :max="255" :modelValue="color.a" @update:modelValue="setA" />
     </div>
   </div>
 </template>
@@ -113,13 +110,6 @@ function setA(v: number) { props.color.a = clamp(v); emit('change') }
   color: var(--color-text-muted);
   flex-shrink: 0;
   font-weight: 600;
-}
-
-.channel-slider {
-  flex: 1;
-  height: 4px;
-  cursor: pointer;
-  accent-color: var(--color-accent);
 }
 
 .channel-num {

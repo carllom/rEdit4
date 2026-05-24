@@ -5,6 +5,7 @@ import { useEditorStore } from '../../stores/editorStore'
 import { makeLayer } from '../../domain/color'
 import { exportLayerAsPNG, downloadBlob } from '../../storage/fileIO'
 import type { Layer } from '../../domain/model'
+import NumericInput from '../ui/NumericInput.vue'
 
 const project = useProjectStore()
 const editor = useEditorStore()
@@ -123,15 +124,15 @@ function moveLayer(layerId: string, direction: 1 | -1) {
         />
 
         <!-- Opacity -->
-        <input
+        <NumericInput
           class="opacity-input"
-          type="number"
-          min="0"
-          max="100"
-          :value="Math.round(layer.opacity * 100)"
+          :min="0"
+          :max="100"
+          :modelValue="Math.round(layer.opacity * 100)"
           title="Opacity %"
-          @input.stop="setOpacity(layer, +($event.target as HTMLInputElement).value)"
+          @update:modelValue="v => setOpacity(layer, v)"
           @click.stop
+          @pointerdown.stop
         />
         <span class="opacity-pct">%</span>
 

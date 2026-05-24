@@ -51,6 +51,10 @@ The fixed-size canvas area in the Image Editor that shows a window into the acti
 The Viewport dimensions are determined by the editor panel size, not by the Image dimensions or zoom level.
 Pan and zoom change which portion of the Image is visible, but the Viewport canvas itself never resizes.
 
+## NumericInput
+
+A reusable UI control for editing a bounded integer or decimal value. Supports direct text entry and scrubbing — clicking and dragging to increment/decrement the value. Dragging right or up increases the value; left or down decreases it. Shift+scrub moves in 10× steps. Native browser spinners are hidden; the scrub gesture replaces them.
+
 ## Tool
 The active paint instrument. Phase 1 tools: Draw, Erase, Fill, Eyedropper, Line, Rectangle.
 
