@@ -41,8 +41,14 @@ export const useProjectStore = defineStore('project', () => {
     return project.value?.images.find(img => img.id === id)
   }
 
+  function removeImage(id: string): void {
+    if (!project.value) return
+    project.value.images = project.value.images.filter(img => img.id !== id)
+    isDirty.value = true
+  }
+
   function markDirty() { isDirty.value = true }
   function markClean() { isDirty.value = false }
 
-  return { project, isDirty, hasProject, newProject, addImage, getPalette, getImage, markDirty, markClean }
+  return { project, isDirty, hasProject, newProject, addImage, removeImage, getPalette, getImage, markDirty, markClean }
 })

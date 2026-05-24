@@ -50,11 +50,12 @@ export class HistoryManager {
     }
     // Filter out pixels where nothing actually changed
     const pixels = Array.from(this.pending.values()).filter(p => p.oldIndex !== p.newIndex)
+    const meta = this.pendingMeta
     this.pending.clear()
     this.pendingMeta = null
     if (pixels.length === 0) return null
 
-    const cmd: Command = { ...this.pendingMeta!, pixels }
+    const cmd: Command = { ...meta!, pixels }
     this.past.push(cmd)
     if (this.past.length > MAX_HISTORY) this.past.shift()
     this.future = []

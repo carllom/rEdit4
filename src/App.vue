@@ -43,6 +43,11 @@ onMounted(async () => {
         editor.activeLayerId = null
       }
     }
+    // Auto-select first image if none is active
+    if (!editor.activeImageId && saved.images.length > 0) {
+      const img = saved.images[0]
+      editor.setActiveImage(img.id, img.layers[img.layers.length - 1].id, img.paletteId)
+    }
     if (!editor.activePaletteId && saved.palettes[0]) {
       editor.activePaletteId = saved.palettes[0].id
     }

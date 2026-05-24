@@ -48,6 +48,12 @@ and anchor point. Used for slicing external assets into Images.
 ## Tool
 The active paint instrument. Phase 1 tools: Draw, Erase, Fill, Eyedropper, Line, Rectangle.
 
+## Cursor
+The canvas pointer has two independent visual components:
+
+1. **OS pointer icon** — the CSS `cursor` property, set per-Tool via a lookup table in `CursorLayer`. Draw/Line/Rectangle use `crosshair`; Erase, Fill, and Eyedropper use tool-specific SVG icons (white stroke, black outline, tip/corner hotspot).
+2. **Cell highlight** — a white semi-transparent rectangle drawn on the cursor canvas layer, outlining the exact pixel cell being targeted. Present for all Tools regardless of pointer icon.
+
 ## Stroke
 A single draw gesture: mousedown → mousemove* → mouseup. All pixel changes within one
 Stroke are committed as a single undo Command.

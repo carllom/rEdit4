@@ -6,6 +6,36 @@ import { rectOutlinePoints } from '../../renderer/tools/rectTool'
 import type { Point } from '../../domain/model'
 import type { Tool } from '../../stores/paintStore'
 
+function makeCursor(paths: string[], hx: number, hy: number): string {
+  const inner = paths.map(d =>
+    `<path stroke='black' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round' fill='none' d='${d}'/>` +
+    `<path stroke='white' stroke-width='2'   stroke-linecap='round' stroke-linejoin='round' fill='none' d='${d}'/>`
+  ).join('')
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'>${inner}</svg>`
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${hx} ${hy}, auto`
+}
+
+const TOOL_CURSORS: Record<Tool, string> = {
+  draw: 'crosshair',
+  line: 'crosshair',
+  rect: 'crosshair',
+  erase: makeCursor([
+    "M21 21H8a2 2 0 0 1-1.42-.587l-3.994-3.999a2 2 0 0 1 0-2.828l10-10a2 2 0 0 1 2.829 0l5.999 6a2 2 0 0 1 0 2.828L12.834 21",
+    "m5.082 11.09 8.828 8.828",
+  ], 8, 21),
+  fill: makeCursor([
+    "M11 7 6 2",
+    "M18.992 12H2.041",
+    "M21.145 18.38A3.34 3.34 0 0 1 20 16.5a3.3 3.3 0 0 1-1.145 1.88c-.575.46-.855 1.02-.855 1.595A2 2 0 0 0 20 22a2 2 0 0 0 2-2.025c0-.58-.285-1.13-.855-1.595",
+    "m8.5 4.5 2.148-2.148a1.205 1.205 0 0 1 1.704 0l7.296 7.296a1.205 1.205 0 0 1 0 1.704l-7.592 7.592a3.615 3.615 0 0 1-5.112 0l-3.888-3.888a3.615 3.615 0 0 1 0-5.112L5.67 7.33",
+  ], 20, 22),
+  eyedropper: makeCursor([
+    "m12 9-8.414 8.414A2 2 0 0 0 3 18.828v1.344a2 2 0 0 1-.586 1.414A2 2 0 0 1 3.828 21h1.344a2 2 0 0 0 1.414-.586L15 12",
+    "m18 9 .4.4a1 1 0 1 1-3 3l-3.8-3.8a1 1 0 1 1 3-3l.4.4 3.4-3.4a1 1 0 1 1 3 3z",
+    "m2 22 .414-.414",
+  ], 2, 21),
+}
+
 const props = defineProps<{
   width: number
   height: number
@@ -31,7 +61,7 @@ let shiftHeld = false
 const cursor = computed(() => {
   if (props.isPanning) return 'grabbing'
   if (props.panMode) return 'grab'
-  return 'crosshair'
+  return TOOL_CURSORS[props.activeTool]
 })
 
 function isShapeTool() { return props.activeTool === 'line' || props.activeTool === 'rect' }

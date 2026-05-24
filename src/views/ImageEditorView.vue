@@ -3,9 +3,11 @@ import { computed, ref, watch } from 'vue'
 import CanvasEditor from '../components/canvas/CanvasEditor.vue'
 import LayerPanel from '../components/layers/LayerPanel.vue'
 import NewImageDialog from '../components/canvas/NewImageDialog.vue'
+import ConfirmDialog from '../components/ui/ConfirmDialog.vue'
 import { useProjectStore } from '../stores/projectStore'
 import { useEditorStore } from '../stores/editorStore'
 import { useHistoryStore } from '../stores/historyStore'
+import { exportImageAsPNG, downloadBlob } from '../storage/fileIO'
 
 const project = useProjectStore()
 const editor = useEditorStore()
@@ -15,6 +17,8 @@ const images = computed(() => project.project?.images ?? [])
 const activeImage = computed(() => editor.activeImageId ? project.getImage(editor.activeImageId) ?? null : null)
 
 const showNewImageDialog = ref(false)
+const imageToRemoveId = ref<string | null>(null)
+const imageToRemoveName = computed(() => imageToRemoveId.value ? (project.getImage(imageToRemoveId.value)?.name ?? '') : '')
 
 watch(() => editor.activeImageId, (id) => {
   history.setActiveImage(id)
@@ -39,21 +43,45 @@ function selectImage(id: string) {
   if (!img) return
   editor.setActiveImage(img.id, img.layers[img.layers.length - 1].id, img.paletteId)
 }
+
+function confirmRemoveImage() {
+  const id = imageToRemoveId.value
+  if (!id) return
+  const imgs = images.value
+  const idx = imgs.findIndex(img => img.id === id)
+  const sibling = imgs[idx + 1] ?? imgs[idx - 1] ?? null
+  history.clearFor(id)
+  project.removeImage(id)
+  if (sibling) selectImage(sibling.id)
+  else editor.clearActiveImage()
+  imageToRemoveId.value = null
+}
+
+async function exportPNG() {
+  const img = activeImage.value
+  if (!img) return
+  const palette = project.getPalette(img.paletteId)
+  if (!palette) return
+  const blob = await exportImageAsPNG(img, palette)
+  downloadBlob(blob, `${img.name}.png`)
+}
 </script>
 
 <template>
   <div class="image-editor-view">
     <div class="image-toolbar">
       <button class="toolbar-btn" @click="showNewImageDialog = true">+ New Image</button>
+      <button class="toolbar-btn" :disabled="!activeImage" @click="exportPNG">Export PNG</button>
       <div class="image-tabs">
-        <button
+        <div
           v-for="img in images"
           :key="img.id"
           :class="['image-tab', { active: editor.activeImageId === img.id }]"
           @click="selectImage(img.id)"
         >
-          {{ img.name }} ({{ img.width }}×{{ img.height }})
-        </button>
+          <span class="tab-label">{{ img.name }} ({{ img.width }}×{{ img.height }})</span>
+          <button class="tab-close" title="Remove image" @click.stop="imageToRemoveId = img.id">×</button>
+        </div>
       </div>
     </div>
 
@@ -76,6 +104,14 @@ function selectImage(id: string) {
       :open="showNewImageDialog"
       @confirm="onNewImage"
       @cancel="showNewImageDialog = false"
+    />
+    <ConfirmDialog
+      :open="imageToRemoveId !== null"
+      title="Remove Image"
+      :message="`Remove '${imageToRemoveName}'? This cannot be undone.`"
+      confirm-label="Remove"
+      @confirm="confirmRemoveImage"
+      @cancel="imageToRemoveId = null"
     />
   </div>
 </template>
@@ -113,7 +149,10 @@ function selectImage(id: string) {
 .image-tabs { display: flex; gap: 2px; overflow-x: auto; }
 
 .image-tab {
-  padding: 3px 10px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px 3px 10px;
   background: none;
   border: 1px solid transparent;
   color: var(--color-text-muted);
@@ -124,6 +163,27 @@ function selectImage(id: string) {
 }
 .image-tab:hover { color: var(--color-text); background: var(--color-surface-2); }
 .image-tab.active { color: var(--color-text); background: var(--color-surface-2); border-color: var(--color-border); }
+
+.tab-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 2px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.1s;
+  flex-shrink: 0;
+}
+.image-tab:hover .tab-close { opacity: 1; }
+.tab-close:hover { background: var(--color-surface-3); color: var(--color-danger); }
 
 .editor-area { display: flex; flex: 1; overflow: hidden; }
 

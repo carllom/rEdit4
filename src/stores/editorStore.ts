@@ -18,10 +18,15 @@ export const useEditorStore = defineStore('editor', () => {
     activePaletteId.value = paletteId
   }
   function setActiveLayer(layerId: string) { activeLayerId.value = layerId }
+  function clearActiveImage() {
+    activeImageId.value = null
+    activeLayerId.value = null
+    activePaletteId.value = null
+  }
 
   return {
     activeTab, activeImageId, activeLayerId, activePaletteId, activeSpriteId, activeAnimationId,
-    setTab, setActiveImage, setActiveLayer,
+    setTab, setActiveImage, setActiveLayer, clearActiveImage,
   }
 }, {
   persist: {

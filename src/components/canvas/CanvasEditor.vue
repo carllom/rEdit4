@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, toRaw } from 'vue'
 import ImageLayer from './ImageLayer.vue'
 import CursorLayer from './CursorLayer.vue'
 import { useProjectStore } from '../../stores/projectStore'
@@ -104,10 +104,11 @@ function applyFill(pixel: Point) {
   if (!inBounds(pixel.x, pixel.y, img.width, img.height)) return
 
   const fillIdx = paint.activeColorIndex
-  const targetIdx = layer.data[linearIndex(pixel.x, pixel.y, img.width)]
+  const rawData = toRaw(layer).data
+  const targetIdx = rawData[linearIndex(pixel.x, pixel.y, img.width)]
   if (targetIdx === fillIdx) return  // no-op
 
-  const diffs = floodFill(layer.data, img.width, img.height, pixel.x, pixel.y, targetIdx, fillIdx)
+  const diffs = floodFill(rawData, img.width, img.height, pixel.x, pixel.y, targetIdx, fillIdx)
   if (diffs.length === 0) return
 
   history.beginStroke(props.imageId, layer.id, 'fill')
@@ -129,11 +130,12 @@ function applyShape() {
   if (!img || !layer || !layer.visible || !shapeStart || !shapeEnd) return
 
   const colorIdx = paint.activeColorIndex
+  const rawData = toRaw(layer).data
   let diffs
   if (paint.activeTool === 'line') {
-    diffs = applyLine(layer.data, img.width, img.height, shapeStart.x, shapeStart.y, shapeEnd.x, shapeEnd.y, colorIdx)
+    diffs = applyLine(rawData, img.width, img.height, shapeStart.x, shapeStart.y, shapeEnd.x, shapeEnd.y, colorIdx)
   } else {
-    diffs = applyRect(layer.data, img.width, img.height, shapeStart.x, shapeStart.y, shapeEnd.x, shapeEnd.y, colorIdx)
+    diffs = applyRect(rawData, img.width, img.height, shapeStart.x, shapeStart.y, shapeEnd.x, shapeEnd.y, colorIdx)
   }
   if (diffs.length === 0) return
 

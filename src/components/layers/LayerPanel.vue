@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useProjectStore } from '../../stores/projectStore'
 import { useEditorStore } from '../../stores/editorStore'
 import { makeLayer } from '../../domain/color'
+import { exportLayerAsPNG, downloadBlob } from '../../storage/fileIO'
 import type { Layer } from '../../domain/model'
 
 const project = useProjectStore()
@@ -59,6 +60,17 @@ function removeLayer(layerId: string) {
   const newActive = image.value.layers[Math.min(idx, image.value.layers.length - 1)]
   editor.setActiveLayer(newActive.id)
   project.markDirty()
+}
+
+async function exportLayer(layer: Layer) {
+  const img = image.value
+  if (!img) return
+  const palette = project.getPalette(img.paletteId)
+  if (!palette) return
+  const idx = img.layers.indexOf(layer)
+  if (idx === -1) return
+  const blob = await exportLayerAsPNG(img, idx, palette)
+  downloadBlob(blob, `${img.name}_${layer.name}.png`)
 }
 
 // direction: 1 = move up visually (increase index in array), -1 = move down
@@ -127,6 +139,7 @@ function moveLayer(layerId: string, direction: 1 | -1) {
         <div class="layer-actions">
           <button class="icon-btn" title="Move up" @click.stop="moveLayer(layer.id, 1)">↑</button>
           <button class="icon-btn" title="Move down" @click.stop="moveLayer(layer.id, -1)">↓</button>
+          <button class="icon-btn" title="Export layer as PNG" @click.stop="exportLayer(layer)">↓PNG</button>
           <button class="icon-btn danger" title="Delete" @click.stop="removeLayer(layer.id)">×</button>
         </div>
       </div>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted, toRaw } from 'vue'
 import type { Layer, Palette } from '../../domain/model'
 import { renderLayer } from '../../renderer/layerRenderer'
 
@@ -20,7 +20,7 @@ function redraw() {
   offscreen.width = width
   offscreen.height = height
   const offCtx = offscreen.getContext('2d')!
-  renderLayer(layer, palette, width, height, offCtx)
+  renderLayer(toRaw(layer), toRaw(palette), width, height, offCtx)
 
   const canvas = displayCanvas.value
   if (!canvas) return

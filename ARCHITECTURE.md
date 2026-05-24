@@ -185,6 +185,12 @@ The cursor layer:
 - Emits `pixelAction` events: `{ type: 'move'|'press'|'release', pixel: Point, buttons: number }`
 - The image editor component receives these and dispatches to the active tool
 
+**Cursor icon design:** The CSS `cursor` property is controlled by a `Record<Tool, string>` lookup
+table inside `CursorLayer.vue`. Pan modes (`grab`/`grabbing`) always override the tool cursor.
+Draw, Line, and Rectangle use the native `crosshair` cursor. Erase, Fill, and Eyedropper use inline
+SVG data URIs (Lucide icon paths, white stroke with black outline, tip/corner hotspot) — no cursor
+asset files required. The cell highlight (canvas-drawn pixel outline) is shown for all tools.
+
 ---
 
 ## Pinia Store Design
@@ -352,12 +358,12 @@ Alongside the PNG, generate a CSS file with `background-position` classes per sp
 - ✓ Image: create via dialog (name, width 1–512, height 1–512) _verified_
 - ✓ Layers: add, remove, reorder, rename (double-click), opacity (live), visibility toggle _verified_
 - ✓ Canvas editor: zoom (scroll wheel, +/− keys, 1–32×), pan (Space+drag, middle mouse) _verified_
-- ✓ Draw tool, Erase tool, Flood fill (4-connected, exact index match), Eyedropper
-- ✓ Line tool (Bresenham, Shift-constrain to 45°)
-- ✓ Rectangle tool (outline, Shift-constrain to square)
-- ✓ Undo/redo (100 levels, per-image command stack)
-- ✓ Export image as PNG (composite all visible layers)
-- ✓ Export single layer as PNG
+- ✓ Draw tool, Erase tool, Flood fill (4-connected, exact index match), Eyedropper _verified_
+- ✓ Line tool (Bresenham, Shift-constrain to 45°) _verified_ (isometric snap angles deferred — see Deferred Design Decisions)
+- ✓ Rectangle tool (outline, Shift-constrain to square) _verified_
+- ✓ Undo/redo (100 levels, per-image command stack) _verified_
+- ✓ Export image as PNG (composite all visible layers) _verified_
+- ✓ Export single layer as PNG _verified_
 - ☐ Project file export/import (`.redit` ZIP format) → moved to Phase 5
 
 ### Phase 2 — Sprite Editor
@@ -408,6 +414,24 @@ type PreviewColorFn = (existingIndex: number, palette: Palette) => string
 The cursor layer would need access to the underlying layer data to sample existing pixel indices
 and compute the resulting preview color per cell.
 
+### Line Tool — Isometric Shift-Constrain Angles
+
+Currently Shift-constrain on the line tool snaps to three directions: horizontal, 45°, and vertical.
+For isometric pixel art, two additional snap angles are useful:
+
+- **2:1 shallow** — arctan(1/2) ≈ 26.57°: 2 pixels across for every 1 pixel down
+- **1:2 steep** — arctan(2) ≈ 63.43°: 1 pixel across for every 2 pixels down
+
+These are the standard isometric projection angles in pixel art.
+
+The five-zone nearest-angle snap approach: place zone boundaries at the angular midpoints
+between adjacent snap angles (~13°, ~36°, ~54°, ~77°). The constrained endpoint for a 2:1 or
+1:2 snap is computed by projecting (dx, dy) onto the target direction vector and rounding to
+the nearest integer step.
+
+These extra angles should be **off by default** and enabled via a user settings toggle
+(e.g. "Isometric snap angles"). The base three-angle snap (0°/45°/90°) is always available.
+
 ### Palette Color Removal — Index Remapping
 
 Removing a color from the palette shifts every subsequent palette index down by one, which can
@@ -441,3 +465,14 @@ Also consider: should the remove action be blocked if any pixel in any layer use
 5. **Storage is layered.** Auto-save to IndexedDB is the safety net. File save is explicit user
    action. The storage layer is abstracted behind a service interface so a cloud backend can be
    added in a later version without changing domain or UI code.
+
+
+## Maybes, nice to haves
+
+* We have a number of numeric inputs that I would like to share style and behavior. Hidden up/down icons Click/focus+drag to increase/decrease value. Right/Up increase, Left/Down decrease.
+* Close/remove button for image.
+
+## Possible Reconsiderations
+
+Now we are generating a canvas the size of the image*zoom. For zoomed in 512x512 it can amount to a canvas of 16384x16384, which makes it quite unwieldy.
+What if we skipped native scrolling and always had a canvas the size of the application canvas area, regardless of zooming or image size. We would then only render the visible window to the canvas.
