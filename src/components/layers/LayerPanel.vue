@@ -6,6 +6,7 @@ import { makeLayer } from '../../domain/color'
 import { exportLayerAsPNG, downloadBlob } from '../../storage/fileIO'
 import type { Layer } from '../../domain/model'
 import NumericInput from '../ui/NumericInput.vue'
+import ConfirmDialog from '../ui/ConfirmDialog.vue'
 
 const project = useProjectStore()
 const editor = useEditorStore()
@@ -52,6 +53,11 @@ function addLayer() {
   project.markDirty()
 }
 
+const layerToRemoveId = ref<string | null>(null)
+const layerToRemoveName = computed(() =>
+  image.value?.layers.find(l => l.id === layerToRemoveId.value)?.name ?? ''
+)
+
 function removeLayer(layerId: string) {
   if (!image.value || image.value.layers.length <= 1) return
   const idx = image.value.layers.findIndex(l => l.id === layerId)
@@ -60,6 +66,11 @@ function removeLayer(layerId: string) {
   const newActive = image.value.layers[Math.min(idx, image.value.layers.length - 1)]
   editor.setActiveLayer(newActive.id)
   project.markDirty()
+}
+
+function confirmRemoveLayer() {
+  if (layerToRemoveId.value) removeLayer(layerToRemoveId.value)
+  layerToRemoveId.value = null
 }
 
 async function exportLayer(layer: Layer) {
@@ -193,7 +204,7 @@ onUnmounted(() => {
           <!-- Actions -->
           <div class="layer-actions">
             <button class="icon-btn" title="Export layer as PNG" @click.stop="exportLayer(layer)">↓PNG</button>
-            <button class="icon-btn danger" title="Delete" @click.stop="removeLayer(layer.id)">×</button>
+            <button class="icon-btn danger" title="Delete" @click.stop="layerToRemoveId = layer.id">×</button>
           </div>
         </div>
       </template>
@@ -201,6 +212,15 @@ onUnmounted(() => {
     </div>
 
     <div v-else class="no-image">No image selected</div>
+
+    <ConfirmDialog
+      :open="layerToRemoveId !== null"
+      title="Delete Layer"
+      :message="`Delete '${layerToRemoveName}'? This cannot be undone.`"
+      confirm-label="Delete"
+      @confirm="confirmRemoveLayer"
+      @cancel="layerToRemoveId = null"
+    />
   </div>
 </template>
 

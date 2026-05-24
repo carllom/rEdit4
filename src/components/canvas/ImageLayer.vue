@@ -19,6 +19,7 @@ const displayCanvas = ref<HTMLCanvasElement | null>(null)
 let rafId: number | null = null
 
 function redraw() {
+  rafId = null
   const { width, height, zoom, palette, layer, panOffset, viewW, viewH } = props
 
   // Render full layer to offscreen at native (1:1) resolution
@@ -65,8 +66,6 @@ function redraw() {
   ctx.globalAlpha = layer.opacity
   ctx.drawImage(offscreen, actualSrcX, actualSrcY, actualSrcW, actualSrcH, destX, destY, actualSrcW * zoom, actualSrcH * zoom)
   ctx.globalAlpha = 1
-
-  rafId = null
 }
 
 function requestRedraw() {
