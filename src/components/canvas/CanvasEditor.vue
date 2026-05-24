@@ -6,7 +6,7 @@ import { useProjectStore } from '../../stores/projectStore'
 import { useEditorStore } from '../../stores/editorStore'
 import { usePaintStore } from '../../stores/paintStore'
 import { useHistoryStore } from '../../stores/historyStore'
-import { inBounds, linearIndex } from '../../renderer/viewport'
+import { inBounds, linearIndex, ZOOM_LEVELS, fitToViewport, clampPanOffset, centerPanOffset } from '../../renderer/viewport'
 import { drawCheckerboard, drawGrid } from '../../renderer/layerRenderer'
 import { floodFill } from '../../renderer/tools/fillTool'
 import { applyLine } from '../../renderer/tools/lineTool'
@@ -30,30 +30,81 @@ const previewColor = computed(() => {
   return color ? colorToCSSRGBA(color) : 'rgba(255,255,255,0.8)'
 })
 
-const displayW = computed(() => (image.value?.width ?? 0) * paint.zoom)
-const displayH = computed(() => (image.value?.height ?? 0) * paint.zoom)
+// --- Viewport state (per-image, from store) ---
+const zoom = computed(() => paint.viewports[props.imageId]?.zoom ?? 1)
+const panOffset = computed(() => paint.viewports[props.imageId]?.panOffset ?? { x: 0, y: 0 })
 
-// --- Checkerboard ---
+// --- Viewport dimensions (tracked via ResizeObserver) ---
+const viewW = ref(0)
+const viewH = ref(0)
+const container = ref<HTMLDivElement | null>(null)
+
+function initViewportIfNeeded() {
+  const img = image.value
+  if (!img || viewW.value === 0 || viewH.value === 0) return
+  const { zoom: z, panOffset: pan } = fitToViewport(img.width, img.height, viewW.value, viewH.value)
+  paint.initViewport(props.imageId, z, pan)
+}
+
+let resizeObserver: ResizeObserver | null = null
+
+onMounted(() => {
+  resizeObserver = new ResizeObserver(entries => {
+    const rect = entries[0].contentRect
+    if (rect.width === 0 || rect.height === 0) return
+    viewW.value = Math.round(rect.width)
+    viewH.value = Math.round(rect.height)
+    initViewportIfNeeded()
+  })
+  resizeObserver.observe(container.value!)
+
+  window.addEventListener('keydown', onKeydown)
+  window.addEventListener('keyup', onKeyup)
+  window.addEventListener('mousemove', onGlobalMousemove)
+  window.addEventListener('mouseup', onGlobalMouseup)
+  container.value?.addEventListener('wheel', onWheel, { passive: false })
+})
+
+onUnmounted(() => {
+  resizeObserver?.disconnect()
+  window.removeEventListener('keydown', onKeydown)
+  window.removeEventListener('keyup', onKeyup)
+  window.removeEventListener('mousemove', onGlobalMousemove)
+  window.removeEventListener('mouseup', onGlobalMouseup)
+  container.value?.removeEventListener('wheel', onWheel)
+})
+
+// --- Background / Grid redraw ---
 const bgCanvas = ref<HTMLCanvasElement | null>(null)
-watch([displayW, displayH], () => {
-  const ctx = bgCanvas.value?.getContext('2d')
-  if (ctx) drawCheckerboard(ctx, displayW.value, displayH.value)
-}, { flush: 'post' })
-onMounted(() => {
-  const ctx = bgCanvas.value?.getContext('2d')
-  if (ctx) drawCheckerboard(ctx, displayW.value, displayH.value)
-})
-
-// --- Grid ---
 const gridCanvas = ref<HTMLCanvasElement | null>(null)
-watch([displayW, displayH, () => paint.zoom], () => {
+
+function vpContext() {
+  const img = image.value
+  return {
+    viewW: viewW.value,
+    viewH: viewH.value,
+    zoom: zoom.value,
+    panOffset: panOffset.value,
+    imgW: img?.width ?? 0,
+    imgH: img?.height ?? 0,
+  }
+}
+
+function redrawBg() {
+  const ctx = bgCanvas.value?.getContext('2d')
+  if (ctx && viewW.value > 0) drawCheckerboard(ctx, vpContext())
+}
+
+function redrawGrid() {
   const ctx = gridCanvas.value?.getContext('2d')
-  if (ctx) drawGrid(ctx, displayW.value, displayH.value, paint.zoom)
-}, { flush: 'post' })
-onMounted(() => {
-  const ctx = gridCanvas.value?.getContext('2d')
-  if (ctx) drawGrid(ctx, displayW.value, displayH.value, paint.zoom)
-})
+  if (ctx && viewW.value > 0) drawGrid(ctx, vpContext())
+}
+
+// Redraw static layers whenever the viewport state or dimensions change
+watch([viewW, viewH, zoom, panOffset], () => {
+  redrawBg()
+  redrawGrid()
+}, { flush: 'post', deep: true })
 
 // --- Layer ref map ---
 const layerRefs = new Map<string, InstanceType<typeof ImageLayer>>()
@@ -67,6 +118,9 @@ function requestLayerRedraw(layerId: string) {
 function requestAllLayersRedraw() {
   image.value?.layers.forEach(l => requestLayerRedraw(l.id))
 }
+
+// Re-render all layers when viewport changes (zoom, pan, resize)
+watch([zoom, panOffset, viewW, viewH], requestAllLayersRedraw, { flush: 'post', deep: true })
 
 // --- Tool application ---
 function applyTool(pixel: Point) {
@@ -106,7 +160,7 @@ function applyFill(pixel: Point) {
   const fillIdx = paint.activeColorIndex
   const rawData = toRaw(layer).data
   const targetIdx = rawData[linearIndex(pixel.x, pixel.y, img.width)]
-  if (targetIdx === fillIdx) return  // no-op
+  if (targetIdx === fillIdx) return
 
   const diffs = floodFill(rawData, img.width, img.height, pixel.x, pixel.y, targetIdx, fillIdx)
   if (diffs.length === 0) return
@@ -118,7 +172,6 @@ function applyFill(pixel: Point) {
   project.markDirty()
 }
 
-// Track drag endpoints for shape tools
 let shapeStart: Point | null = null
 let shapeEnd: Point | null = null
 
@@ -148,13 +201,10 @@ function applyShape() {
 
 function onPixelPress(pixel: Point) {
   if (isPanMode.value) return
-  if (paint.activeTool === 'fill') {
-    applyFill(pixel)
-    return
-  }
+  if (paint.activeTool === 'fill') { applyFill(pixel); return }
   if (isShapeTool()) {
     shapeStart = { ...pixel }
-    shapeEnd = { ...pixel }
+    shapeEnd   = { ...pixel }
     paint.isDrawing = true
     return
   }
@@ -165,10 +215,7 @@ function onPixelPress(pixel: Point) {
 
 function onPixelDrag(pixel: Point) {
   if (isPanMode.value || !paint.isDrawing) return
-  if (isShapeTool()) {
-    shapeEnd = { ...pixel }
-    return
-  }
+  if (isShapeTool()) { shapeEnd = { ...pixel }; return }
   applyTool(pixel)
 }
 
@@ -178,7 +225,7 @@ function onPixelRelease() {
   if (isShapeTool()) {
     applyShape()
     shapeStart = null
-    shapeEnd = null
+    shapeEnd   = null
     return
   }
   history.commitStroke(props.imageId)
@@ -208,22 +255,36 @@ function applyRedo() {
 }
 
 // --- Zoom ---
-const ZOOM_LEVELS = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32]
-const viewport = ref<HTMLDivElement | null>(null)
-
-function zoomIn() {
-  const idx = ZOOM_LEVELS.indexOf(paint.zoom)
-  if (idx < ZOOM_LEVELS.length - 1) paint.setZoom(ZOOM_LEVELS[idx + 1])
+function applyZoom(newZoom: number, cursorScreenX: number, cursorScreenY: number) {
+  const img = image.value
+  if (!img) return
+  const pan = panOffset.value
+  const oldZoom = zoom.value
+  // Keep the image pixel under the cursor fixed in screen space
+  const pixelX = cursorScreenX / oldZoom + pan.x
+  const pixelY = cursorScreenY / oldZoom + pan.y
+  const newPan = clampPanOffset(
+    { x: pixelX - cursorScreenX / newZoom, y: pixelY - cursorScreenY / newZoom },
+    img.width, img.height, viewW.value, viewH.value, newZoom,
+  )
+  paint.setViewport(props.imageId, { zoom: newZoom, panOffset: newPan })
 }
-function zoomOut() {
-  const idx = ZOOM_LEVELS.indexOf(paint.zoom)
-  if (idx > 0) paint.setZoom(ZOOM_LEVELS[idx - 1])
+
+function zoomIn(cursorX = viewW.value / 2, cursorY = viewH.value / 2) {
+  const idx = ZOOM_LEVELS.indexOf(zoom.value)
+  if (idx < ZOOM_LEVELS.length - 1) applyZoom(ZOOM_LEVELS[idx + 1], cursorX, cursorY)
+}
+
+function zoomOut(cursorX = viewW.value / 2, cursorY = viewH.value / 2) {
+  const idx = ZOOM_LEVELS.indexOf(zoom.value)
+  if (idx > 0) applyZoom(ZOOM_LEVELS[idx - 1], cursorX, cursorY)
 }
 
 function onWheel(e: WheelEvent) {
   e.preventDefault()
   if (paint.isDrawing) return
-  if (e.deltaY < 0) zoomIn(); else zoomOut()
+  if (e.deltaY < 0) zoomIn(e.offsetX, e.offsetY)
+  else              zoomOut(e.offsetX, e.offsetY)
 }
 
 // --- Pan (Space+drag and middle-mouse drag) ---
@@ -231,83 +292,78 @@ const isPanMode = ref(false)
 const isPanning = ref(false)
 let panStartX = 0
 let panStartY = 0
-let panAnchorScrollX = 0
-let panAnchorScrollY = 0
+let panAnchorOffset: Point = { x: 0, y: 0 }
 
 function startPan(screenX: number, screenY: number) {
   isPanning.value = true
   panStartX = screenX
   panStartY = screenY
-  panAnchorScrollX = viewport.value?.scrollLeft ?? 0
-  panAnchorScrollY = viewport.value?.scrollTop ?? 0
+  panAnchorOffset = { ...panOffset.value }
 }
 
 function updatePan(screenX: number, screenY: number) {
-  if (!isPanning.value || !viewport.value) return
-  viewport.value.scrollLeft = panAnchorScrollX + (panStartX - screenX)
-  viewport.value.scrollTop  = panAnchorScrollY + (panStartY - screenY)
+  if (!isPanning.value) return
+  const img = image.value
+  if (!img) return
+  const dxPixel = (panStartX - screenX) / zoom.value
+  const dyPixel = (panStartY - screenY) / zoom.value
+  const newPan = clampPanOffset(
+    { x: panAnchorOffset.x + dxPixel, y: panAnchorOffset.y + dyPixel },
+    img.width, img.height, viewW.value, viewH.value, zoom.value,
+  )
+  paint.setViewport(props.imageId, { zoom: zoom.value, panOffset: newPan })
 }
 
 function stopPan() { isPanning.value = false }
 
+function reCenter() {
+  const img = image.value
+  if (!img) return
+  paint.setViewport(props.imageId, {
+    zoom: zoom.value,
+    panOffset: centerPanOffset(img.width, img.height, viewW.value, viewH.value, zoom.value),
+  })
+}
+
 // --- Keyboard ---
 function onKeydown(e: KeyboardEvent) {
-  if (e.code === 'Space') { isPanMode.value = true; e.preventDefault(); return }
+  if (e.code === 'Space')   { isPanMode.value = true; e.preventDefault(); return }
+  if (e.code === 'Home')    { reCenter(); return }
   if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) { e.preventDefault(); applyUndo(); return }
   if ((e.key === 'y' && (e.ctrlKey || e.metaKey)) || (e.key === 'z' && (e.ctrlKey || e.metaKey) && e.shiftKey)) { e.preventDefault(); applyRedo(); return }
   if (e.key === '=' || e.key === '+') { zoomIn(); return }
-  if (e.key === '-') { zoomOut(); return }
+  if (e.key === '-')                  { zoomOut(); return }
   const toolKeys: Record<string, string> = { d: 'draw', e: 'erase', f: 'fill', i: 'eyedropper', l: 'line', r: 'rect' }
   if (!e.ctrlKey && !e.metaKey && toolKeys[e.key.toLowerCase()]) {
     paint.setTool(toolKeys[e.key.toLowerCase()] as Parameters<typeof paint.setTool>[0])
   }
 }
+
 function onKeyup(e: KeyboardEvent) {
   if (e.code === 'Space') { isPanMode.value = false; if (isPanning.value) stopPan() }
 }
 
-// Viewport mouse events for pan
-function onViewportMousedown(e: MouseEvent) {
+// Container mouse events for pan
+function onContainerMousedown(e: MouseEvent) {
   if (e.button === 1 || (e.button === 0 && isPanMode.value)) {
     e.preventDefault()
     startPan(e.clientX, e.clientY)
   }
 }
-function onViewportMousemove(e: MouseEvent) { updatePan(e.clientX, e.clientY) }
-function onViewportMouseup(e: MouseEvent) { if (e.button === 1 || e.button === 0) stopPan() }
-
-onMounted(() => {
-  window.addEventListener('keydown', onKeydown)
-  window.addEventListener('keyup', onKeyup)
-  window.addEventListener('mousemove', onViewportMousemove)
-  window.addEventListener('mouseup', onViewportMouseup)
-  viewport.value?.addEventListener('wheel', onWheel, { passive: false })
-})
-onUnmounted(() => {
-  window.removeEventListener('keydown', onKeydown)
-  window.removeEventListener('keyup', onKeyup)
-  window.removeEventListener('mousemove', onViewportMousemove)
-  window.removeEventListener('mouseup', onViewportMouseup)
-  viewport.value?.removeEventListener('wheel', onWheel)
-})
-
-// Redraw all layers when zoom changes (canvas sizes change)
-watch(() => paint.zoom, requestAllLayersRedraw)
+function onGlobalMousemove(e: MouseEvent) { updatePan(e.clientX, e.clientY) }
+function onGlobalMouseup(e: MouseEvent) { if (e.button === 1 || e.button === 0) stopPan() }
 </script>
 
 <template>
   <div class="canvas-editor">
     <div
-      ref="viewport"
+      ref="container"
       class="canvas-viewport"
-      :style="{ cursor: isPanMode ? 'grab' : 'default' }"
-      @mousedown="onViewportMousedown"
+      :style="{ cursor: isPanMode ? (isPanning ? 'grabbing' : 'grab') : 'default' }"
+      @mousedown="onContainerMousedown"
     >
-      <div
-        class="canvas-stack"
-        :style="{ width: `${displayW}px`, height: `${displayH}px` }"
-      >
-        <canvas ref="bgCanvas" class="stack-layer" :width="displayW" :height="displayH" style="z-index:0" />
+      <div class="canvas-stack">
+        <canvas ref="bgCanvas"   class="stack-layer" :width="viewW" :height="viewH" style="z-index:0" />
         <ImageLayer
           v-for="layer in image?.layers"
           :key="layer.id"
@@ -316,16 +372,22 @@ watch(() => paint.zoom, requestAllLayersRedraw)
           :palette="palette!"
           :width="image!.width"
           :height="image!.height"
-          :zoom="paint.zoom"
+          :zoom="zoom"
+          :pan-offset="panOffset"
+          :view-w="viewW"
+          :view-h="viewH"
           class="stack-layer"
           style="z-index:1"
         />
-        <canvas ref="gridCanvas" class="stack-layer" :width="displayW" :height="displayH" style="z-index:2" />
+        <canvas ref="gridCanvas" class="stack-layer" :width="viewW" :height="viewH" style="z-index:2" />
         <CursorLayer
           class="stack-layer"
           :width="image?.width ?? 0"
           :height="image?.height ?? 0"
-          :zoom="paint.zoom"
+          :zoom="zoom"
+          :pan-offset="panOffset"
+          :view-w="viewW"
+          :view-h="viewH"
           :active-tool="paint.activeTool"
           :pan-mode="isPanMode"
           :is-panning="isPanning"
@@ -339,9 +401,9 @@ watch(() => paint.zoom, requestAllLayersRedraw)
     </div>
     <div class="statusbar">
       {{ image?.width }}×{{ image?.height }} px
-      &nbsp;|&nbsp; zoom: {{ paint.zoom }}×
-      &nbsp;|&nbsp; <button class="zoom-btn" @click="zoomOut">−</button>
-      <button class="zoom-btn" @click="zoomIn">+</button>
+      &nbsp;|&nbsp; zoom: {{ zoom }}×
+      &nbsp;|&nbsp; <button class="zoom-btn" @click="zoomOut()">−</button>
+      <button class="zoom-btn" @click="zoomIn()">+</button>
     </div>
   </div>
 </template>
@@ -351,15 +413,14 @@ watch(() => paint.zoom, requestAllLayersRedraw)
 
 .canvas-viewport {
   flex: 1;
-  overflow: auto;
-  background: var(--color-bg);
-  padding: 16px;
+  overflow: hidden;
+  position: relative;
+  background: #1e1e1e;
 }
 
 .canvas-stack {
-  position: relative;
-  flex-shrink: 0;
-  image-rendering: pixelated;
+  position: absolute;
+  inset: 0;
 }
 
 .stack-layer {

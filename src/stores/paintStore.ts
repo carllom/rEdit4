@@ -1,21 +1,46 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, reactive } from 'vue'
+import type { Point } from '../domain/model'
 
 export type Tool = 'draw' | 'erase' | 'fill' | 'eyedropper' | 'line' | 'rect'
 
+export interface ViewportState {
+  zoom: number
+  panOffset: Point
+}
+
 export const usePaintStore = defineStore('paint', () => {
   const activeTool = ref<Tool>('draw')
-  const activeColorIndex = ref<number>(1)  // 0 = transparent, start on first real color slot
-  const zoom = ref<number>(8)
+  const activeColorIndex = ref<number>(1)
   const isDrawing = ref<boolean>(false)
+
+  // Per-image viewport state. Keyed by imageId. Ephemeral — not persisted.
+  const viewports = reactive<Record<string, ViewportState>>({})
 
   function setTool(tool: Tool) { activeTool.value = tool }
   function setColorIndex(index: number) { activeColorIndex.value = index }
-  function setZoom(z: number) { zoom.value = Math.max(1, Math.min(32, z)) }
 
-  return { activeTool, activeColorIndex, zoom, isDrawing, setTool, setColorIndex, setZoom }
+  function getViewport(imageId: string): ViewportState | undefined {
+    return viewports[imageId]
+  }
+
+  function setViewport(imageId: string, state: ViewportState) {
+    viewports[imageId] = state
+  }
+
+  // Initializes viewport state for an image only if it has never been opened this session.
+  function initViewport(imageId: string, zoom: number, panOffset: Point) {
+    if (!viewports[imageId]) {
+      viewports[imageId] = { zoom, panOffset }
+    }
+  }
+
+  return {
+    activeTool, activeColorIndex, isDrawing, viewports,
+    setTool, setColorIndex, getViewport, setViewport, initViewport,
+  }
 }, {
   persist: {
-    pick: ['activeTool', 'zoom'],
+    pick: ['activeTool'],
   },
 })

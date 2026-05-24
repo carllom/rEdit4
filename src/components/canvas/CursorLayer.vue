@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { screenToPixel } from '../../renderer/viewport'
 import { bresenhamLine } from '../../renderer/tools/lineTool'
 import { rectOutlinePoints } from '../../renderer/tools/rectTool'
@@ -37,13 +37,16 @@ const TOOL_CURSORS: Record<Tool, string> = {
 }
 
 const props = defineProps<{
-  width: number
-  height: number
+  width: number      // image width in pixels
+  height: number     // image height in pixels
   zoom: number
+  panOffset: Point
+  viewW: number
+  viewH: number
   activeTool: Tool
   panMode: boolean
   isPanning: boolean
-  previewColor: string   // CSS color string for shape tool preview fill
+  previewColor: string
 }>()
 
 const emit = defineEmits<{
@@ -67,24 +70,27 @@ const cursor = computed(() => {
 function isShapeTool() { return props.activeTool === 'line' || props.activeTool === 'rect' }
 
 function getCell(e: MouseEvent): Point {
-  return screenToPixel(e.offsetX, e.offsetY, props.zoom)
+  return screenToPixel(e.offsetX, e.offsetY, props.zoom, props.panOffset)
 }
 
 function cellChanged(p: Point): boolean {
   return p.x !== lastCell.x || p.y !== lastCell.y
 }
 
-// Apply Shift-constrain to an endpoint relative to a start point
+// Convert image pixel coord to screen coord on the canvas
+function cellScreenX(px: number): number { return (px - props.panOffset.x) * props.zoom }
+function cellScreenY(py: number): number { return (py - props.panOffset.y) * props.zoom }
+
 function constrain(start: Point, end: Point): Point {
   const dx = end.x - start.x
   const dy = end.y - start.y
   if (props.activeTool === 'line') {
     const adx = Math.abs(dx)
     const ady = Math.abs(dy)
-    if (adx > ady * 2)       return { x: end.x, y: start.y }           // horizontal
-    if (ady > adx * 2)       return { x: start.x, y: end.y }           // vertical
+    if (adx > ady * 2)       return { x: end.x, y: start.y }
+    if (ady > adx * 2)       return { x: start.x, y: end.y }
     const d = Math.min(adx, ady)
-    return { x: start.x + Math.sign(dx) * d, y: start.y + Math.sign(dy) * d } // 45°
+    return { x: start.x + Math.sign(dx) * d, y: start.y + Math.sign(dy) * d }
   } else {
     const d = Math.min(Math.abs(dx), Math.abs(dy))
     return { x: start.x + Math.sign(dx) * d, y: start.y + Math.sign(dy) * d }
@@ -106,20 +112,24 @@ function clearCanvas() {
 
 function drawCell(ctx: CanvasRenderingContext2D, x: number, y: number) {
   const z = props.zoom
+  const sx = cellScreenX(x)
+  const sy = cellScreenY(y)
   ctx.fillStyle = 'rgba(255,255,255,0.25)'
-  ctx.fillRect(x * z, y * z, z, z)
+  ctx.fillRect(sx, sy, z, z)
   ctx.strokeStyle = 'rgba(255,255,255,0.6)'
   ctx.lineWidth = 1
-  ctx.strokeRect(x * z + 0.5, y * z + 0.5, z - 1, z - 1)
+  ctx.strokeRect(sx + 0.5, sy + 0.5, z - 1, z - 1)
 }
 
 function drawPreviewCell(ctx: CanvasRenderingContext2D, x: number, y: number) {
   const z = props.zoom
+  const sx = cellScreenX(x)
+  const sy = cellScreenY(y)
   ctx.fillStyle = props.previewColor
-  ctx.fillRect(x * z, y * z, z, z)
+  ctx.fillRect(sx, sy, z, z)
   ctx.strokeStyle = 'rgba(255,255,255,0.6)'
   ctx.lineWidth = 1
-  ctx.strokeRect(x * z + 0.5, y * z + 0.5, z - 1, z - 1)
+  ctx.strokeRect(sx + 0.5, sy + 0.5, z - 1, z - 1)
 }
 
 function drawShapePreview(end: Point) {
@@ -147,7 +157,9 @@ function drawCursor(cell: Point, clear = false) {
   const z = props.zoom
 
   if (lastCell.x >= 0) {
-    ctx.clearRect(lastCell.x * z, lastCell.y * z, z, z)
+    const lsx = cellScreenX(lastCell.x)
+    const lsy = cellScreenY(lastCell.y)
+    ctx.clearRect(lsx - 1, lsy - 1, z + 2, z + 2)
   }
   if (!clear && cell.x >= 0 && cell.y >= 0) {
     drawCell(ctx, cell.x, cell.y)
@@ -214,6 +226,20 @@ function onMouseLeave() {
   if (isDown.value) { isDown.value = false; emit('pixelRelease') }
 }
 
+// When the viewport changes (pan, zoom, resize), the cell highlight is at a stale screen
+// position. Clear and redraw it at the correct new position.
+watch(
+  () => [props.panOffset.x, props.panOffset.y, props.zoom, props.viewW, props.viewH],
+  () => {
+    const cnv = canvas.value
+    if (!cnv) return
+    const ctx = cnv.getContext('2d')!
+    ctx.clearRect(0, 0, cnv.width, cnv.height)
+    if (lastCell.x >= 0 && lastCell.y >= 0) drawCell(ctx, lastCell.x, lastCell.y)
+  },
+  { flush: 'post' },
+)
+
 onMounted(() => {
   const cnv = canvas.value
   if (!cnv) return
@@ -225,10 +251,5 @@ onMounted(() => {
 </script>
 
 <template>
-  <canvas
-    ref="canvas"
-    :width="width * zoom"
-    :height="height * zoom"
-    :style="{ cursor }"
-  />
+  <canvas ref="canvas" :width="viewW" :height="viewH" :style="{ cursor }" />
 </template>

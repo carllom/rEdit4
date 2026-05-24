@@ -141,41 +141,58 @@ Canvas 2D API calls in response to explicit signals.
 ### Stacked Canvas Pattern
 
 The image editor uses stacked `<canvas>` elements, all `position: absolute` within a relative
-container. From bottom to top (ascending z-index):
+container. **All canvases are the same fixed size as the Viewport** — they never resize on zoom
+or image change. From bottom to top (ascending z-index):
 
 ```
 ┌─────────────────────────────────┐
 │  5. Cursor layer                │  ← topmost; captures all mouse events; draws cursor cell highlight
-│  4. Decoration layer (grid)     │  ← grid lines; redrawn only on zoom change
+│  4. Decoration layer (grid)     │  ← grid lines over image area only; redrawn on zoom/pan change
 │  3. Image layers [one per Layer]│  ← ordered by layer stack; redrawn when layer pixel data changes
 │  2. Composite preview           │  ← merged view of all visible layers (debounced, optional)
-│  1. Checkerboard background     │  ← static transparency pattern; drawn once
+│  1. Checkerboard background     │  ← transparency pattern inside image bounds; dark fill outside;
+│                                 │    image outline drawn on top of boundary
 └─────────────────────────────────┘
 ```
 
 ### Pixel Coordinate System
 
 - **Pixel coordinates** — the native pixel grid of the image (e.g., 16×16)
-- **Screen coordinates** — the displayed pixel position on the canvas element
-- **zoom** — integer scale factor (e.g., 8 → each pixel = 8×8 screen pixels)
-- **pan offset** — `{ x, y }` in pixel coordinates; controls viewport for large images
+- **Screen coordinates** — the CSS pixel position on the Viewport canvas (origin = top-left of canvas)
+- **zoom** — integer scale factor (e.g., 8 → each image pixel = 8×8 screen pixels)
+- **panOffset** — `{ x: number, y: number }` in **pixel space** (float); the image pixel that maps
+  to screen coordinate (0, 0). Zoom-independent: `{ x: 32, y: 64 }` means the Viewport's top-left
+  shows image pixel (32, 64) regardless of zoom level.
 
-Cursor layer converts screen position to pixel coordinates:
+Coordinate transforms:
 ```
-pixelX = Math.floor((screenX + panOffsetX * zoom) / zoom)
-pixelY = Math.floor((screenY + panOffsetY * zoom) / zoom)
+screenX = (pixelX - panOffset.x) * zoom
+pixelX  = screenX / zoom + panOffset.x
 ```
+
+**Per-image viewport state:** each Image stores its own `zoom` and `panOffset`. On first open,
+zoom is computed to fit the image within the Viewport (largest zoom step where the full image fits
+with padding), and panOffset centers the image. Subsequent opens restore the saved state.
+
+**Pan bounds:** panOffset is soft-clamped so at least one image pixel remains visible in the
+Viewport. A re-center shortcut (`Home`) snaps panOffset back to center the image.
+
+**Zoom-to-cursor:** on scroll-wheel zoom, the image pixel under the cursor stays fixed in screen
+space. Achieved by adjusting panOffset at each zoom step to maintain the cursor's pixel position.
 
 ### Layer Rendering
 
 Each image layer canvas renders its `Uint8Array` data through the palette:
-1. Build a `Uint8ClampedArray` (RGBA) from the layer's indexed data + palette
-2. Write to an `ImageData`
-3. Call `ctx.putImageData(imageData, 0, 0)` on a scratch canvas
-4. Scale-blit to the display canvas: `ctx.drawImage(scratchCanvas, 0, 0, displayW, displayH)`
-   with `imageSmoothingEnabled = false` to preserve crisp pixels
 
-Rendering of a single pixel after a draw operation uses a partial `putImageData` for performance.
+1. Build a `Uint8ClampedArray` (RGBA) from the layer's indexed pixel data + palette — full image
+2. Write to an offscreen scratch canvas at native image resolution (e.g., 512×512)
+3. Blit the visible region to the Viewport canvas via the 9-argument `drawImage` form (source clip + destination scale), with `imageSmoothingEnabled = false` to preserve crisp pixels:
+
+```text
+ctx.drawImage(scratch, srcX, srcY, srcW, srcH, destX, destY, destW, destH)
+```
+
+where `srcX/srcY` are the visible pixel range start (floored panOffset), and `destX/destY` are the fractional-pixel screen offset to keep panning smooth.
 
 ### Cursor and Input
 
@@ -470,9 +487,4 @@ Also consider: should the remove action be blocked if any pixel in any layer use
 ## Maybes, nice to haves
 
 * We have a number of numeric inputs that I would like to share style and behavior. Hidden up/down icons Click/focus+drag to increase/decrease value. Right/Up increase, Left/Down decrease.
-* Close/remove button for image.
-
-## Possible Reconsiderations
-
-Now we are generating a canvas the size of the image*zoom. For zoomed in 512x512 it can amount to a canvas of 16384x16384, which makes it quite unwieldy.
-What if we skipped native scrolling and always had a canvas the size of the application canvas area, regardless of zooming or image size. We would then only render the visible window to the canvas.
+* ✓ ~~Close/remove button for image.~~

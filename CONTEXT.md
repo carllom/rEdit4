@@ -45,6 +45,12 @@ An ordered sequence of Frames. Each Frame references a Sprite, a position, and a
 An imported PNG sprite sheet. Contains named SheetEntries, each with a bounding rectangle
 and anchor point. Used for slicing external assets into Images.
 
+## Viewport
+
+The fixed-size canvas area in the Image Editor that shows a window into the active Image.
+The Viewport dimensions are determined by the editor panel size, not by the Image dimensions or zoom level.
+Pan and zoom change which portion of the Image is visible, but the Viewport canvas itself never resizes.
+
 ## Tool
 The active paint instrument. Phase 1 tools: Draw, Erase, Fill, Eyedropper, Line, Rectangle.
 
