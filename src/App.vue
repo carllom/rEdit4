@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { watch, onMounted, ref, nextTick } from 'vue'
-import { RouterView } from 'vue-router'
-import AppSidebar from './components/ui/AppSidebar.vue'
+import { RouterView, useRouter } from 'vue-router'
+import { Settings } from '@lucide/vue'
 import { useProjectStore } from './stores/projectStore'
 import { useEditorStore } from './stores/editorStore'
+import { useSettingsStore } from './stores/settingsStore'
 import { loadProject, saveProject } from './storage/db'
 
+const router = useRouter()
 const project = useProjectStore()
 const editor = useEditorStore()
+const { settings } = useSettingsStore()
 
 // --- Project rename ---
 const renamingProject = ref(false)
@@ -68,7 +71,7 @@ watch(() => project.isDirty, (dirty) => {
     if (!project.project) return
     await saveProject(project.project)
     project.markClean()
-  }, 2000)
+  }, settings.autosaveFrequency * 1000)
 })
 </script>
 
@@ -93,9 +96,11 @@ watch(() => project.isDirty, (dirty) => {
           @dblclick="startRename"
         >{{ project.project.name }}<span v-if="project.isDirty" class="dirty-marker">*</span></span>
       </template>
+      <button class="settings-btn" title="Settings" @click="router.push('/settings')">
+        <Settings :size="13" />
+      </button>
     </header>
     <div class="app-body">
-      <AppSidebar />
       <main class="app-main">
         <RouterView />
       </main>
@@ -153,6 +158,22 @@ html, body, #app {
 
 .app-title { font-weight: 700; letter-spacing: 0.08em; color: var(--color-accent); font-size: 13px; }
 .project-name { color: var(--color-text-muted); font-size: 11px; cursor: default; }
+
+.settings-btn {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 3px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+.settings-btn:hover { color: var(--color-text); background: var(--color-surface-3); }
 .dirty-marker { color: var(--color-accent); }
 .project-rename-input {
   background: var(--color-surface-3);

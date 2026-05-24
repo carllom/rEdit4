@@ -5,6 +5,9 @@ import { bresenhamLine } from '../../renderer/tools/lineTool'
 import { rectOutlinePoints } from '../../renderer/tools/rectTool'
 import type { Point } from '../../domain/model'
 import type { Tool } from '../../stores/paintStore'
+import { useSettingsStore } from '../../stores/settingsStore'
+
+const { settings } = useSettingsStore()
 
 function makeCursor(paths: string[], hx: number, hy: number): string {
   const inner = paths.map(d =>
@@ -81,16 +84,33 @@ function cellChanged(p: Point): boolean {
 function cellScreenX(px: number): number { return (px - props.panOffset.x) * props.zoom }
 function cellScreenY(py: number): number { return (py - props.panOffset.y) * props.zoom }
 
+// Zone boundaries for 5-angle isometric snap, derived as midpoints between adjacent angles.
+// B1 = tan(arctan(0.5)/2) = √5−2, B2 = (√10−1)/3, B3 = 1/B2, B4 = 1/B1 = √5+2
+const ISO_B1 = Math.sqrt(5) - 2
+const ISO_B2 = (Math.sqrt(10) - 1) / 3
+const ISO_B3 = (Math.sqrt(10) + 1) / 3
+const ISO_B4 = Math.sqrt(5) + 2
+
 function constrain(start: Point, end: Point): Point {
   const dx = end.x - start.x
   const dy = end.y - start.y
   if (props.activeTool === 'line') {
     const adx = Math.abs(dx)
     const ady = Math.abs(dy)
-    if (adx > ady * 2)       return { x: end.x, y: start.y }
-    if (ady > adx * 2)       return { x: start.x, y: end.y }
+    const sx = Math.sign(dx)
+    const sy = Math.sign(dy)
+    if (settings.isometricSnap) {
+      const ratio = adx === 0 ? Infinity : ady / adx
+      if (ratio < ISO_B1)       return { x: end.x, y: start.y }
+      if (ratio < ISO_B2) { const t = Math.round((2 * adx + ady) / 5); return { x: start.x + sx * 2 * t, y: start.y + sy * t } }
+      if (ratio < ISO_B3) { const d = Math.min(adx, ady);              return { x: start.x + sx * d,     y: start.y + sy * d } }
+      if (ratio < ISO_B4) { const t = Math.round((adx + 2 * ady) / 5); return { x: start.x + sx * t,     y: start.y + sy * 2 * t } }
+      return { x: start.x, y: end.y }
+    }
+    if (adx > ady * 2) return { x: end.x, y: start.y }
+    if (ady > adx * 2) return { x: start.x, y: end.y }
     const d = Math.min(adx, ady)
-    return { x: start.x + Math.sign(dx) * d, y: start.y + Math.sign(dy) * d }
+    return { x: start.x + sx * d, y: start.y + sy * d }
   } else {
     const d = Math.min(Math.abs(dx), Math.abs(dy))
     return { x: start.x + Math.sign(dx) * d, y: start.y + Math.sign(dy) * d }
@@ -114,22 +134,28 @@ function drawCell(ctx: CanvasRenderingContext2D, x: number, y: number) {
   const z = props.zoom
   const sx = cellScreenX(x)
   const sy = cellScreenY(y)
+  ctx.save()
+  ctx.globalAlpha = settings.cursorOpacity / 100
   ctx.fillStyle = 'rgba(255,255,255,0.25)'
   ctx.fillRect(sx, sy, z, z)
   ctx.strokeStyle = 'rgba(255,255,255,0.6)'
   ctx.lineWidth = 1
   ctx.strokeRect(sx + 0.5, sy + 0.5, z - 1, z - 1)
+  ctx.restore()
 }
 
 function drawPreviewCell(ctx: CanvasRenderingContext2D, x: number, y: number) {
   const z = props.zoom
   const sx = cellScreenX(x)
   const sy = cellScreenY(y)
+  ctx.save()
+  ctx.globalAlpha = settings.cursorOpacity / 100
   ctx.fillStyle = props.previewColor
   ctx.fillRect(sx, sy, z, z)
   ctx.strokeStyle = 'rgba(255,255,255,0.6)'
   ctx.lineWidth = 1
   ctx.strokeRect(sx + 0.5, sy + 0.5, z - 1, z - 1)
+  ctx.restore()
 }
 
 function drawShapePreview(end: Point) {
@@ -229,7 +255,7 @@ function onMouseLeave() {
 // When the viewport changes (pan, zoom, resize), the cell highlight is at a stale screen
 // position. Clear and redraw it at the correct new position.
 watch(
-  () => [props.panOffset.x, props.panOffset.y, props.zoom, props.viewW, props.viewH],
+  () => [props.panOffset.x, props.panOffset.y, props.zoom, props.viewW, props.viewH, settings.cursorOpacity],
   () => {
     const cnv = canvas.value
     if (!cnv) return

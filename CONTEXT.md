@@ -71,3 +71,13 @@ Stroke are committed as a single undo Command.
 ## Command
 An undoable unit of work. Stores per-pixel diffs (oldIndex, newIndex) for the affected Layer.
 Commands are stacked per-Image with a depth limit of 100.
+
+## Application Settings
+User preferences that apply across all Projects and survive loading a new Project.
+Stored in `localStorage` as a single JSON blob under the key `redit:settings`, separate from project data in IndexedDB.
+Changes take effect immediately (no Save/Apply step).
+Organised into named Settings Categories (e.g. General, Editor) displayed in a panel-swap layout at `/settings`.
+
+### Settings Category
+A named group of related Application Settings shown as a panel in the Settings view.
+Current categories: General (auto-save frequency), Editor (isometric snap, cursor opacity).

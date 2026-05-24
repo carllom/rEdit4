@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import AppSidebar from '../components/ui/AppSidebar.vue'
 import CanvasEditor from '../components/canvas/CanvasEditor.vue'
 import LayerPanel from '../components/layers/LayerPanel.vue'
 import NewImageDialog from '../components/canvas/NewImageDialog.vue'
@@ -69,6 +70,8 @@ async function exportPNG() {
 
 <template>
   <div class="image-editor-view">
+    <AppSidebar />
+    <div class="editor-main">
     <div class="image-toolbar">
       <button class="toolbar-btn" @click="showNewImageDialog = true">+ New Image</button>
       <button class="toolbar-btn" :disabled="!activeImage" @click="exportPNG">Export PNG</button>
@@ -100,6 +103,7 @@ async function exportPNG() {
       </div>
     </div>
 
+    </div> <!-- editor-main -->
     <NewImageDialog
       :open="showNewImageDialog"
       @confirm="onNewImage"
@@ -118,6 +122,13 @@ async function exportPNG() {
 
 <style scoped>
 .image-editor-view {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  overflow: hidden;
+}
+
+.editor-main {
   display: flex;
   flex-direction: column;
   flex: 1;
