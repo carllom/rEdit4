@@ -9,8 +9,8 @@ import { usePaintStore } from '../../stores/paintStore'
 import { useHistoryStore } from '../../stores/historyStore'
 import { inBounds, linearIndex, ZOOM_LEVELS, fitToViewport, clampPanOffset, centerPanOffset } from '../../renderer/viewport'
 import { drawCheckerboard, drawGrid } from '../../renderer/layerRenderer'
-import { floodFill } from '../../renderer/tools/fillTool'
-import { applyLine } from '../../renderer/tools/lineTool'
+import { floodFill, fillReplace } from '../../renderer/tools/fillTool'
+import { applyLine, bresenhamLine } from '../../renderer/tools/lineTool'
 import { applyRect, applyRectFilled } from '../../renderer/tools/rectTool'
 import { colorToCSSRGBA } from '../../domain/color'
 import type { Point } from '../../domain/model'
@@ -135,9 +135,17 @@ function applyTool(pixel: Point) {
 
   if (paint.activeTool === 'draw') {
     const newIdx = paint.activeColorIndex
-    if (oldIdx === newIdx) return
-    history.recordPixel(props.imageId, linIdx, pixel.x, pixel.y, oldIdx, newIdx)
-    layer.data[linIdx] = newIdx
+    const from = (paint.toolVariants['draw'] === 'connected' && lastDrawPixel) ? lastDrawPixel : pixel
+    const points = from === pixel ? [pixel] : bresenhamLine(from.x, from.y, pixel.x, pixel.y)
+    for (const p of points) {
+      if (!inBounds(p.x, p.y, img.width, img.height)) continue
+      const li = linearIndex(p.x, p.y, img.width)
+      const old = layer.data[li]
+      if (old === newIdx) continue
+      history.recordPixel(props.imageId, li, p.x, p.y, old, newIdx)
+      layer.data[li] = newIdx
+    }
+    lastDrawPixel = { ...pixel }
     requestLayerRedraw(layer.id)
     project.markDirty()
   } else if (paint.activeTool === 'erase') {
@@ -152,11 +160,44 @@ function applyTool(pixel: Point) {
   }
 }
 
-// TODO: replace all pixels of clicked colour index across the layer
-function applyFillReplace(_pixel: Point) {}
+function applyFillReplace(pixel: Point) {
+  const img = image.value
+  const layer = activeLayer.value
+  if (!img || !layer || !layer.visible) return
+  if (!inBounds(pixel.x, pixel.y, img.width, img.height)) return
 
-// TODO: remove all pixels of clicked colour index from the layer
-function applyEraseClear(_pixel: Point) {}
+  const fillIdx = paint.activeColorIndex
+  const rawData = toRaw(layer).data
+  const targetIdx = rawData[linearIndex(pixel.x, pixel.y, img.width)]
+
+  const diffs = fillReplace(rawData, img.width, targetIdx, fillIdx)
+  if (diffs.length === 0) return
+
+  history.beginStroke(props.imageId, layer.id, 'fill')
+  diffs.forEach(d => history.recordPixel(props.imageId, linearIndex(d.x, d.y, img.width), d.x, d.y, d.oldIndex, d.newIndex))
+  history.commitStroke(props.imageId)
+  requestLayerRedraw(layer.id)
+  project.markDirty()
+}
+
+function applyEraseClear(pixel: Point) {
+  const img = image.value
+  const layer = activeLayer.value
+  if (!img || !layer || !layer.visible) return
+  if (!inBounds(pixel.x, pixel.y, img.width, img.height)) return
+
+  const rawData = toRaw(layer).data
+  const targetIdx = rawData[linearIndex(pixel.x, pixel.y, img.width)]
+
+  const diffs = fillReplace(rawData, img.width, targetIdx, 0)
+  if (diffs.length === 0) return
+
+  history.beginStroke(props.imageId, layer.id, 'erase')
+  diffs.forEach(d => history.recordPixel(props.imageId, linearIndex(d.x, d.y, img.width), d.x, d.y, d.oldIndex, d.newIndex))
+  history.commitStroke(props.imageId)
+  requestLayerRedraw(layer.id)
+  project.markDirty()
+}
 
 function applyFill(pixel: Point) {
   const img = image.value
@@ -181,6 +222,7 @@ function applyFill(pixel: Point) {
 
 let shapeStart: Point | null = null
 let shapeEnd: Point | null = null
+let lastDrawPixel: Point | null = null
 
 function isShapeTool() { return paint.activeTool === 'line' || paint.activeTool === 'rect' }
 
@@ -226,6 +268,7 @@ function onPixelPress(pixel: Point) {
     return
   }
   paint.isDrawing = true
+  lastDrawPixel = null
   history.beginStroke(props.imageId, editor.activeLayerId ?? '', paint.activeTool)
   applyTool(pixel)
 }
@@ -239,6 +282,7 @@ function onPixelDrag(pixel: Point) {
 function onPixelRelease() {
   if (!paint.isDrawing) return
   paint.isDrawing = false
+  lastDrawPixel = null
   if (isShapeTool()) {
     applyShape()
     shapeStart = null

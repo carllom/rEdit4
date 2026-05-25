@@ -1,15 +1,29 @@
 import type { PixelDiff } from '../../domain/history'
 import { linearIndex, inBounds } from '../viewport'
 
-// TODO: implement filled rectangle rasterisation
 export function applyRectFilled(
-  _data: Uint8Array,
-  _width: number, _height: number,
-  _x0: number, _y0: number,
-  _x1: number, _y1: number,
-  _colorIdx: number,
+  data: Uint8Array,
+  width: number, height: number,
+  x0: number, y0: number,
+  x1: number, y1: number,
+  colorIdx: number,
 ): PixelDiff[] {
-  return []
+  const minX = Math.min(x0, x1)
+  const maxX = Math.max(x0, x1)
+  const minY = Math.min(y0, y1)
+  const maxY = Math.max(y0, y1)
+  const diffs: PixelDiff[] = []
+  for (let y = minY; y <= maxY; y++) {
+    for (let x = minX; x <= maxX; x++) {
+      if (!inBounds(x, y, width, height)) continue
+      const li = linearIndex(x, y, width)
+      const old = data[li]
+      if (old === colorIdx) continue
+      diffs.push({ x, y, oldIndex: old, newIndex: colorIdx })
+      data[li] = colorIdx
+    }
+  }
+  return diffs
 }
 
 export function rectOutlinePoints(

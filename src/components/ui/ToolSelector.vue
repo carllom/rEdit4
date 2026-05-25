@@ -178,7 +178,8 @@ function toolTooltip(tool: ToolDef): string {
   background: var(--color-surface-3);
 }
 
-.variant-btn--filled :deep(path) {
+.variant-btn--filled :deep(path),
+.variant-btn--filled :deep(rect) {
   fill: currentColor;
   stroke: none;
 }

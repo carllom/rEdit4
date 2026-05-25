@@ -1,5 +1,22 @@
 import type { PixelDiff } from '../../domain/history'
 
+// Replaces every occurrence of targetIdx across the entire layer with fillIdx.
+export function fillReplace(
+  data: Uint8Array,
+  width: number,
+  targetIdx: number,
+  fillIdx: number,
+): PixelDiff[] {
+  if (targetIdx === fillIdx) return []
+  const diffs: PixelDiff[] = []
+  for (let i = 0; i < data.length; i++) {
+    if (data[i] !== targetIdx) continue
+    diffs.push({ x: i % width, y: (i / width) | 0, oldIndex: targetIdx, newIndex: fillIdx })
+    data[i] = fillIdx
+  }
+  return diffs
+}
+
 // 4-connected flood fill. Modifies data in place and returns the list of changed pixels.
 // Returns an empty array if targetIdx === fillIdx (no-op).
 export function floodFill(
