@@ -45,7 +45,7 @@ function onPointermove(e: PointerEvent) {
   lastX = e.clientX
   lastY = e.clientY
 
-  const multiplier = e.shiftKey ? 10 : 1
+  const multiplier = e.shiftKey ? 0.1 : 1
   currentValue += (dx + dy) * multiplier
 
   const rounded = Math.round(currentValue)

@@ -63,7 +63,7 @@ Pan and zoom change which portion of the Image is visible, but the Viewport canv
 
 ## NumericInput
 
-A reusable UI control for editing a bounded integer or decimal value. Supports direct text entry and scrubbing — clicking and dragging to increment/decrement the value. Dragging right or up increases the value; left or down decreases it. Shift+scrub moves in 10× steps. Native browser spinners are hidden; the scrub gesture replaces them.
+A reusable UI control for editing a bounded integer or decimal value. Supports direct text entry and scrubbing — clicking and dragging to increment/decrement the value. Dragging right or up increases the value; left or down decreases it. Shift+scrub moves in 0.1× steps. Native browser spinners are hidden; the scrub gesture replaces them.
 
 ## Tool
 
