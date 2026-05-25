@@ -1,6 +1,17 @@
 import type { PixelDiff } from '../../domain/history'
 import { linearIndex, inBounds } from '../viewport'
 
+// TODO: implement filled rectangle rasterisation
+export function applyRectFilled(
+  _data: Uint8Array,
+  _width: number, _height: number,
+  _x0: number, _y0: number,
+  _x1: number, _y1: number,
+  _colorIdx: number,
+): PixelDiff[] {
+  return []
+}
+
 export function rectOutlinePoints(
   x0: number, y0: number,
   x1: number, y1: number,

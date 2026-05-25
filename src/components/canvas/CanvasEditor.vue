@@ -11,7 +11,7 @@ import { inBounds, linearIndex, ZOOM_LEVELS, fitToViewport, clampPanOffset, cent
 import { drawCheckerboard, drawGrid } from '../../renderer/layerRenderer'
 import { floodFill } from '../../renderer/tools/fillTool'
 import { applyLine } from '../../renderer/tools/lineTool'
-import { applyRect } from '../../renderer/tools/rectTool'
+import { applyRect, applyRectFilled } from '../../renderer/tools/rectTool'
 import { colorToCSSRGBA } from '../../domain/color'
 import type { Point } from '../../domain/model'
 
@@ -152,6 +152,12 @@ function applyTool(pixel: Point) {
   }
 }
 
+// TODO: replace all pixels of clicked colour index across the layer
+function applyFillReplace(_pixel: Point) {}
+
+// TODO: remove all pixels of clicked colour index from the layer
+function applyEraseClear(_pixel: Point) {}
+
 function applyFill(pixel: Point) {
   const img = image.value
   const layer = activeLayer.value
@@ -189,7 +195,9 @@ function applyShape() {
   if (paint.activeTool === 'line') {
     diffs = applyLine(rawData, img.width, img.height, shapeStart.x, shapeStart.y, shapeEnd.x, shapeEnd.y, colorIdx)
   } else {
-    diffs = applyRect(rawData, img.width, img.height, shapeStart.x, shapeStart.y, shapeEnd.x, shapeEnd.y, colorIdx)
+    diffs = paint.toolVariants['rect'] === 'filled'
+      ? applyRectFilled(rawData, img.width, img.height, shapeStart.x, shapeStart.y, shapeEnd.x, shapeEnd.y, colorIdx)
+      : applyRect(rawData, img.width, img.height, shapeStart.x, shapeStart.y, shapeEnd.x, shapeEnd.y, colorIdx)
   }
   if (diffs.length === 0) return
 
@@ -202,7 +210,15 @@ function applyShape() {
 
 function onPixelPress(pixel: Point) {
   if (isPanMode.value) return
-  if (paint.activeTool === 'fill') { applyFill(pixel); return }
+  if (paint.activeTool === 'fill') {
+    if (paint.toolVariants['fill'] === 'replace') { applyFillReplace(pixel); return }
+    applyFill(pixel)
+    return
+  }
+  if (paint.activeTool === 'erase' && paint.toolVariants['erase'] === 'clear') {
+    applyEraseClear(pixel)
+    return
+  }
   if (isShapeTool()) {
     shapeStart = { ...pixel }
     shapeEnd   = { ...pixel }
@@ -390,7 +406,7 @@ function onKeydown(e: KeyboardEvent) {
     return
   }
   const toolKeys: Record<string, string> = { d: 'draw', e: 'erase', f: 'fill', i: 'eyedropper', l: 'line', r: 'rect' }
-  if (!e.ctrlKey && !e.metaKey && toolKeys[e.key.toLowerCase()]) {
+  if (!e.ctrlKey && !e.metaKey && !e.repeat && toolKeys[e.key.toLowerCase()]) {
     paint.setTool(toolKeys[e.key.toLowerCase()] as Parameters<typeof paint.setTool>[0])
   }
 }

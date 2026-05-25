@@ -68,6 +68,13 @@ A reusable UI control for editing a bounded integer or decimal value. Supports d
 ## Tool
 
 The active paint instrument. Phase 1 tools: Draw, Erase, Fill, Eyedropper, Line, Rectangle.
+Each Tool may have one or more Tool Variants.
+
+## Tool Variant
+
+A named mode of a Tool that modifies its drawing behaviour without changing the interaction gestures. Each Tool has exactly one active Variant at a time; variants within a Tool are mutually exclusive. The active variant is stored per-tool and restored when switching back to that tool.
+
+_Avoid_: tool mode, tool option, tool sub-type
 
 ## Cursor
 

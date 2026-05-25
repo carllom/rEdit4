@@ -12,7 +12,7 @@ This document records the agreed technology choices and architecture decisions f
 ## Technology Stack
 
 | Concern | Choice | Rationale |
-|---|---|---|
+| --- | --- | --- |
 | Framework | Vue 3 + Composition API | Clean reactive model, Composition API suits editor-panel architecture |
 | Language | TypeScript | Strict types across domain model and canvas code |
 | Build tool | Vite | Fast HMR, first-class Vue + TS support, PWA plugin |
@@ -432,6 +432,55 @@ Alongside the PNG, generate a CSS file with `background-position` classes per sp
 
 ## Deferred Design Decisions
 
+### Tool Variants
+
+Each drawing Tool supports named Variants exposed as a compact sub-row of Lucide icon buttons in the sidebar, directly below the active tool. Tools with no variants show no sub-row.
+
+**Interaction model:**
+
+- Clicking a sub-button jumps directly to that variant.
+- Re-clicking the main tool button (when already active) cycles round-robin to the next variant.
+- Re-pressing the tool's keyboard shortcut (when already active) also cycles round-robin.
+- Sub-button tooltips show the variant name only (e.g. `"Pixel-perfect"`).
+- Main tool button tooltip includes a cycling hint: e.g. `"Rectangle (R · R to cycle)"`.
+
+**Data model:** `toolVariants: Record<Tool, string>` in `usePaintStore`, persisted alongside `activeTool`. Variants are mutually exclusive per tool (single string, radio model). See ADR 0006.
+
+**Icon mapping** (all from `@lucide/vue`):
+
+| Tool | Variant | Icon | Notes |
+| --- | --- | --- | --- |
+| Draw | Dot | `Dot` | — |
+| Draw | Connected | `PenLine` | — |
+| Draw | Pixel-perfect | `PencilRuler` | — |
+| Draw | Bezier | `Spline` | — |
+| Rectangle | Outline | `Square` | Default Lucide stroke-only style |
+| Rectangle | Filled | `Square` | Same icon with CSS `fill: currentColor; stroke: none` |
+| Fill | Flood | `PaintBucket` | — |
+| Fill | Replace | `ReplaceAll` | — |
+| Erase | Normal | `Eraser` | — |
+| Erase | Clear | `BrushCleaning` | — |
+
+**Default variants** (first launch / no persisted state):
+
+| Tool | Default |
+| --- | --- |
+| Draw | Connected |
+| Rectangle | Filled |
+| Fill | Flood |
+| Erase | Normal |
+
+**Planned variants per tool:**
+
+| Tool | Variants | Notes |
+| --- | --- | --- |
+| Draw | Dot, Connected, Pixel-perfect, Bezier | Dot: stamps at sampled positions only (may leave gaps). Connected: interpolates between positions (no gaps). Pixel-perfect: connected + Bresenham diagonal-preferring (avoids staircases). Bezier: bezierizes the completed path on mouseup. Each mode implies the previous. |
+| Rectangle | Filled, Outline | — |
+| Fill | Flood, Replace | Flood: 4-connected flood fill (current). Replace: replaces all pixels of the clicked colour index across the entire layer. |
+| Erase | Normal, Clear | Normal: erase at cursor (current). Clear: removes all pixels of the clicked colour index across the entire layer. |
+| Line | — | No variants planned yet. |
+| Eyedropper | — | No variants planned. |
+
 ### Shape Tool Preview Color Mode
 
 Currently the line/rect drag preview fills each cell with the committed palette color plus a white
@@ -518,8 +567,7 @@ Also consider: should the remove action be blocked if any pixel in any layer use
    action. The storage layer is abstracted behind a service interface so a cloud backend can be
    added in a later version without changing domain or UI code.
 
-
 ## Maybes, nice to haves
 
-* We have a number of numeric inputs that I would like to share style and behavior. Hidden up/down icons Click/focus+drag to increase/decrease value. Right/Up increase, Left/Down decrease.
-* ✓ ~~Close/remove button for image.~~
+- ✓ ~~We have a number of numeric inputs that I would like to share style and behavior. Hidden up/down icons Click/focus+drag to increase/decrease value. Right/Up increase, Left/Down decrease.~~
+- ✓ ~~Close/remove button for image.~~
