@@ -12,6 +12,7 @@ import { drawCheckerboard, drawGrid } from '../../renderer/layerRenderer'
 import { floodFill, fillReplace } from '../../renderer/tools/fillTool'
 import { applyLine, bresenhamLine } from '../../renderer/tools/lineTool'
 import { applyRect, applyRectFilled } from '../../renderer/tools/rectTool'
+import { applyEllipse, applyEllipseFilled } from '../../renderer/tools/ellipseTool'
 import { colorToCSSRGBA } from '../../domain/color'
 import type { Point } from '../../domain/model'
 
@@ -224,7 +225,7 @@ let shapeStart: Point | null = null
 let shapeEnd: Point | null = null
 let lastDrawPixel: Point | null = null
 
-function isShapeTool() { return paint.activeTool === 'line' || paint.activeTool === 'rect' }
+function isShapeTool() { return paint.activeTool === 'line' || paint.activeTool === 'rect' || paint.activeTool === 'ellipse' }
 
 function applyShape() {
   const img = image.value
@@ -236,6 +237,10 @@ function applyShape() {
   let diffs
   if (paint.activeTool === 'line') {
     diffs = applyLine(rawData, img.width, img.height, shapeStart.x, shapeStart.y, shapeEnd.x, shapeEnd.y, colorIdx)
+  } else if (paint.activeTool === 'ellipse') {
+    diffs = paint.toolVariants['ellipse'] === 'filled'
+      ? applyEllipseFilled(rawData, img.width, img.height, shapeStart.x, shapeStart.y, shapeEnd.x, shapeEnd.y, colorIdx)
+      : applyEllipse(rawData, img.width, img.height, shapeStart.x, shapeStart.y, shapeEnd.x, shapeEnd.y, colorIdx)
   } else {
     diffs = paint.toolVariants['rect'] === 'filled'
       ? applyRectFilled(rawData, img.width, img.height, shapeStart.x, shapeStart.y, shapeEnd.x, shapeEnd.y, colorIdx)
@@ -449,7 +454,7 @@ function onKeydown(e: KeyboardEvent) {
     }
     return
   }
-  const toolKeys: Record<string, string> = { d: 'draw', e: 'erase', f: 'fill', i: 'eyedropper', l: 'line', r: 'rect' }
+  const toolKeys: Record<string, string> = { d: 'draw', e: 'erase', f: 'fill', i: 'eyedropper', l: 'line', r: 'rect', c: 'ellipse' }
   if (!e.ctrlKey && !e.metaKey && !e.repeat && toolKeys[e.key.toLowerCase()]) {
     paint.setTool(toolKeys[e.key.toLowerCase()] as Parameters<typeof paint.setTool>[0])
   }

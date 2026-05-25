@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
 import { usePaintStore, type Tool } from '../../stores/paintStore'
-import { Dot, PenLine, PencilRuler, Spline, Square, PaintBucket, ReplaceAll, Eraser, BrushCleaning } from '@lucide/vue'
+import { Dot, PenLine, PencilRuler, Spline, Square, Circle, PaintBucket, ReplaceAll, Eraser, BrushCleaning } from '@lucide/vue'
 
 const paint = usePaintStore()
 
@@ -50,6 +50,13 @@ const tools: ToolDef[] = [
     variants: [
       { id: 'outline', label: 'Outline', icon: Square },
       { id: 'filled',  label: 'Filled',  icon: Square, filled: true },
+    ],
+  },
+  {
+    id: 'ellipse', label: 'Ellipse', shortcut: 'C',
+    variants: [
+      { id: 'outline', label: 'Outline', icon: Circle },
+      { id: 'filled',  label: 'Filled',  icon: Circle, filled: true },
     ],
   },
 ]
@@ -179,7 +186,8 @@ function toolTooltip(tool: ToolDef): string {
 }
 
 .variant-btn--filled :deep(path),
-.variant-btn--filled :deep(rect) {
+.variant-btn--filled :deep(rect),
+.variant-btn--filled :deep(circle) {
   fill: currentColor;
   stroke: none;
 }

@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { screenToPixel } from '../../renderer/viewport'
 import { bresenhamLine } from '../../renderer/tools/lineTool'
 import { rectOutlinePoints } from '../../renderer/tools/rectTool'
+import { ellipseOutlinePoints } from '../../renderer/tools/ellipseTool'
 import type { Point } from '../../domain/model'
 import type { Tool } from '../../stores/paintStore'
 import { useSettingsStore } from '../../stores/settingsStore'
@@ -22,6 +23,7 @@ const TOOL_CURSORS: Record<Tool, string> = {
   draw: 'crosshair',
   line: 'crosshair',
   rect: 'crosshair',
+  ellipse: 'crosshair',
   erase: makeCursor([
     "M21 21H8a2 2 0 0 1-1.42-.587l-3.994-3.999a2 2 0 0 1 0-2.828l10-10a2 2 0 0 1 2.829 0l5.999 6a2 2 0 0 1 0 2.828L12.834 21",
     "m5.082 11.09 8.828 8.828",
@@ -70,7 +72,7 @@ const cursor = computed(() => {
   return TOOL_CURSORS[props.activeTool]
 })
 
-function isShapeTool() { return props.activeTool === 'line' || props.activeTool === 'rect' }
+function isShapeTool() { return props.activeTool === 'line' || props.activeTool === 'rect' || props.activeTool === 'ellipse' }
 
 function getCell(e: MouseEvent): Point {
   return screenToPixel(e.offsetX, e.offsetY, props.zoom, props.panOffset)
@@ -168,6 +170,8 @@ function drawShapePreview(end: Point) {
   let points: { x: number; y: number }[]
   if (props.activeTool === 'line') {
     points = bresenhamLine(dragStart.x, dragStart.y, eff.x, eff.y)
+  } else if (props.activeTool === 'ellipse') {
+    points = ellipseOutlinePoints(dragStart.x, dragStart.y, eff.x, eff.y)
   } else {
     points = rectOutlinePoints(dragStart.x, dragStart.y, eff.x, eff.y)
   }

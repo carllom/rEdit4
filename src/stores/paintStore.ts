@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, reactive } from 'vue'
 import type { Point } from '../domain/model'
 
-export type Tool = 'draw' | 'erase' | 'fill' | 'eyedropper' | 'line' | 'rect'
+export type Tool = 'draw' | 'erase' | 'fill' | 'eyedropper' | 'line' | 'rect' | 'ellipse'
 
 export interface ViewportState {
   zoom: number
@@ -12,6 +12,7 @@ export interface ViewportState {
 const TOOL_VARIANT_ORDER: Partial<Record<Tool, string[]>> = {
   draw: ['dot', 'connected', 'pixel-perfect', 'bezier'],
   rect: ['outline', 'filled'],
+  ellipse: ['outline', 'filled'],
   fill: ['flood', 'replace'],
   erase: ['normal', 'clear'],
 }
@@ -28,6 +29,7 @@ export const usePaintStore = defineStore('paint', () => {
     eyedropper: '',
     line: '',
     rect: 'filled',
+    ellipse: 'filled',
   })
 
   // Per-image viewport state. Keyed by imageId. Ephemeral — not persisted.
