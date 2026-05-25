@@ -291,8 +291,8 @@ Tab-based layout with a persistent sidebar.
 │    + color  │    ┌──────────────┐  ┌─────────────────────────┐     │
 │    picker   │    │ Canvas       │  │ Layer panel             │     │
 │             │    │ (stacked     │  │ - Layer list            │     │
-│  - Image    │    │  canvases)   │  │ - Add/remove/reorder    │     │
-│    preview  │    │              │  │ - Opacity / visibility  │     │
+│  - Preview  │    │  canvases)   │  │ - Add/remove/reorder    │     │
+│    hint (`) │    │              │  │ - Opacity / visibility  │     │
 │             │    └──────────────┘  └─────────────────────────┘     │
 │             │    Zoom controls, coordinates                        │
 └─────────────┴──────────────────────────────────────────────────────┘
@@ -309,6 +309,26 @@ Later: Line, Rectangle, Color Manipulation (lighten/darken/saturate/desaturate).
 - Click to select active color (highlighted with index indicator)
 - Right-click swatch → edit color (RGBA + HSL input)
 - "Manage palettes" action → palette CRUD (rename, reorder, delete colors)
+
+### Flash Card Preview
+
+Activated by holding the Backquote key (`e.code === 'Backquote'` — physical key position, layout-independent; works on all keyboard locales including Nordic).
+
+While active:
+
+- The composited Image renders centered over the Viewport at the current Preview Zoom
+- A semi-transparent scrim dims the editor behind it
+- All mouse events and tool actions are suppressed
+- Scroll wheel and +/− keys adjust the Preview Zoom (same gesture as editor zoom)
+- Releasing the key dismisses the overlay
+
+**Preview Zoom** is per-image session state: auto-fit on first use (largest integer scale where the full Image fits the Viewport), user-adjustable while active, reset to auto-fit on page reload. Not persisted.
+
+**Preview Background** (behind transparent pixels) is an Application Setting in the Editor category: `checkerboard` (default) or a user-chosen solid color.
+
+The sidebar shows a passive shortcut hint label — no toggle or interactive control.
+
+**PiP Preview is explicitly deferred.** See Deferred Design Decisions.
 
 ---
 
@@ -382,6 +402,7 @@ Alongside the PNG, generate a CSS file with `background-position` classes per sp
 - ✓ Export image as PNG (composite all visible layers) _verified_
 - ✓ Export single layer as PNG _verified_
 - ☐ Project file export/import (`.redit` ZIP format) → moved to Phase 5
+- ☐ Flash Card Preview: Backquote key hold → composited image centered overlay (configurable background, per-image session zoom)
 
 ### Phase 2 — Sprite Editor
 - Compose images into sprites
@@ -448,6 +469,20 @@ the nearest integer step.
 
 These extra angles should be **off by default** and enabled via a user settings toggle
 (e.g. "Isometric snap angles"). The base three-angle snap (0°/45°/90°) is always available.
+
+### Picture-in-Picture (PiP) Preview
+
+A persistent corner-pinned thumbnail overlaid on the canvas Viewport, showing the composited Image at a small zoom. Deferred until Phase 3 (Animation + Onion Skinning) clarifies the full preview scope.
+
+Resolved properties to carry forward when implemented:
+
+- **Placement:** corner-pinned overlay on the Viewport (not the sidebar)
+- **Zoom:** auto-fit (largest integer scale fitting the panel), per-image persisted state
+- **Panel size:** fixed maximum size, user-configurable
+- **Sidebar:** toggle visibility + zoom control
+- **Draggable:** deferred within the PiP phase itself
+- **Fractional zoom:** not needed — large images use Flash Card Preview instead
+- **Onion skinning:** off by default in preview, independent of editor state
 
 ### Palette Color Removal — Index Remapping
 

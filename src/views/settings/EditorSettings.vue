@@ -29,6 +29,26 @@ const { settings } = useSettingsStore()
         <span class="setting-unit">%</span>
       </div>
     </div>
+
+    <div class="setting-row">
+      <div class="setting-label">
+        <span class="setting-name">Preview background</span>
+        <span class="setting-desc">Background behind transparent pixels in the Flash Card Preview</span>
+      </div>
+      <div class="setting-control">
+        <select v-model="settings.previewBackground" class="setting-select">
+          <option value="checkerboard">Checkerboard</option>
+          <option value="solid">Solid</option>
+        </select>
+        <input
+          v-if="settings.previewBackground === 'solid'"
+          type="color"
+          v-model="settings.previewBackgroundColor"
+          class="color-input"
+          title="Preview background color"
+        />
+      </div>
+    </div>
   </div>
 </template>
 
@@ -93,4 +113,24 @@ const { settings } = useSettingsStore()
 }
 
 .setting-unit { font-size: 11px; color: var(--color-text-muted); }
+
+.setting-select {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  color: var(--color-text);
+  font-size: 11px;
+  padding: 3px 6px;
+  cursor: pointer;
+}
+
+.color-input {
+  width: 28px;
+  height: 22px;
+  padding: 1px;
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  background: var(--color-surface-2);
+  cursor: pointer;
+}
 </style>

@@ -4,15 +4,19 @@ import { reactive, watch } from 'vue'
 const STORAGE_KEY = 'redit:settings'
 
 export interface AppSettings {
-  autosaveFrequency: number  // seconds, 1–60
+  autosaveFrequency: number                       // seconds, 1–60
   isometricSnap: boolean
-  cursorOpacity: number      // 0–100
+  cursorOpacity: number                           // 0–100
+  previewBackground: 'checkerboard' | 'solid'
+  previewBackgroundColor: string                  // hex, used when previewBackground === 'solid'
 }
 
 const DEFAULTS: AppSettings = {
   autosaveFrequency: 2,
   isometricSnap: false,
   cursorOpacity: 100,
+  previewBackground: 'checkerboard',
+  previewBackgroundColor: '#000000',
 }
 
 function load(): AppSettings {

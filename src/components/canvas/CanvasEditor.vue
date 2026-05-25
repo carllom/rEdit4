@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, toRaw } from 'vue'
 import ImageLayer from './ImageLayer.vue'
 import CursorLayer from './CursorLayer.vue'
+import FlashCardPreview from './FlashCardPreview.vue'
 import { useProjectStore } from '../../stores/projectStore'
 import { useEditorStore } from '../../stores/editorStore'
 import { usePaintStore } from '../../stores/paintStore'
@@ -282,9 +283,39 @@ function zoomOut(cursorX = viewW.value / 2, cursorY = viewH.value / 2) {
 
 function onWheel(e: WheelEvent) {
   e.preventDefault()
+  if (isFlashActive.value) {
+    if (e.deltaY < 0) previewZoomIn()
+    else previewZoomOut()
+    return
+  }
   if (paint.isDrawing) return
   if (e.deltaY < 0) zoomIn(e.offsetX, e.offsetY)
   else              zoomOut(e.offsetX, e.offsetY)
+}
+
+// --- Flash Card Preview ---
+const isFlashActive = ref(false)
+
+const autoPreviewZoom = computed(() => {
+  const img = image.value
+  if (!img || viewW.value === 0 || viewH.value === 0) return 1
+  return fitToViewport(img.width, img.height, viewW.value, viewH.value, 48).zoom
+})
+
+const currentPreviewZoom = computed(() =>
+  paint.previewZooms[props.imageId] ?? autoPreviewZoom.value
+)
+
+function previewZoomIn() {
+  const idx = ZOOM_LEVELS.indexOf(currentPreviewZoom.value)
+  if (idx !== -1 && idx < ZOOM_LEVELS.length - 1)
+    paint.setPreviewZoom(props.imageId, ZOOM_LEVELS[idx + 1])
+}
+
+function previewZoomOut() {
+  const idx = ZOOM_LEVELS.indexOf(currentPreviewZoom.value)
+  if (idx > 0)
+    paint.setPreviewZoom(props.imageId, ZOOM_LEVELS[idx - 1])
 }
 
 // --- Pan (Space+drag and middle-mouse drag) ---
@@ -328,6 +359,12 @@ function reCenter() {
 // --- Keyboard ---
 function onKeydown(e: KeyboardEvent) {
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+  if (e.code === 'Backquote' && !e.repeat) { isFlashActive.value = true; e.preventDefault(); return }
+  if (isFlashActive.value) {
+    if (e.key === '=' || e.key === '+') { previewZoomIn(); e.preventDefault() }
+    else if (e.key === '-')             { previewZoomOut(); e.preventDefault() }
+    return
+  }
   if (e.code === 'Space')               { isPanMode.value = true; e.preventDefault(); return }
   if (e.code === 'Home' && !e.altKey)   { reCenter(); return }
   if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) { e.preventDefault(); applyUndo(); return }
@@ -359,8 +396,10 @@ function onKeydown(e: KeyboardEvent) {
 }
 
 function onKeyup(e: KeyboardEvent) {
+  if (e.code === 'Backquote') { isFlashActive.value = false; return }
   if (e.code === 'Space') { isPanMode.value = false; if (isPanning.value) stopPan() }
 }
+
 
 // Container mouse events for pan
 function onContainerMousedown(e: MouseEvent) {
@@ -416,6 +455,9 @@ function onGlobalMouseup(e: MouseEvent) { if (e.button === 1 || e.button === 0) 
           @pixel-drag="onPixelDrag"
           @pixel-release="onPixelRelease"
         />
+      </div>
+      <div v-if="isFlashActive && image" class="flash-overlay">
+        <FlashCardPreview :image-id="imageId" :preview-zoom="currentPreviewZoom" />
       </div>
     </div>
     <div class="statusbar">
@@ -473,4 +515,18 @@ function onGlobalMouseup(e: MouseEvent) { if (e.button === 1 || e.button === 0) 
   border-radius: 2px;
 }
 .zoom-btn:hover { background: var(--color-surface-2); }
+
+.flash-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: default;
+}
 </style>

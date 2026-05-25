@@ -96,4 +96,17 @@ Organised into named Settings Categories (e.g. General, Editor) displayed in a p
 ### Settings Category
 
 A named group of related Application Settings shown as a panel in the Settings view.
-Current categories: General (auto-save frequency), Editor (isometric snap, cursor opacity).
+Current categories: General (auto-save frequency), Editor (isometric snap, cursor opacity, preview background).
+
+### Preview Background
+
+An Application Setting controlling what appears behind transparent pixels in the Flash Card Preview. Either `checkerboard` or a user-chosen solid color. Stored in the Editor settings category.
+
+## Flash Card Preview
+
+A transient overlay activated by holding the Backquote key. Shows the full composited Image centered over the editor with a dimmed scrim, at the current Preview Zoom. Disappears on key release. Tool and mouse actions are suppressed while active.
+_Avoid_: Image preview, preview panel
+
+### Preview Zoom
+
+The integer zoom scale used by the Flash Card Preview. Per-image session state: auto-fit on first use (largest integer scale where the full Image fits the Viewport), adjustable via scroll wheel or +/− while the preview is active. Resets to auto-fit on page reload.

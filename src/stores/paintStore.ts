@@ -17,6 +17,9 @@ export const usePaintStore = defineStore('paint', () => {
   // Per-image viewport state. Keyed by imageId. Ephemeral — not persisted.
   const viewports = reactive<Record<string, ViewportState>>({})
 
+  // Per-image flash card preview zoom. Keyed by imageId. Session only — not persisted.
+  const previewZooms = reactive<Record<string, number>>({})
+
   function setTool(tool: Tool) { activeTool.value = tool }
   function setColorIndex(index: number) { activeColorIndex.value = index }
 
@@ -35,9 +38,13 @@ export const usePaintStore = defineStore('paint', () => {
     }
   }
 
+  function setPreviewZoom(imageId: string, zoom: number) {
+    previewZooms[imageId] = zoom
+  }
+
   return {
-    activeTool, activeColorIndex, isDrawing, viewports,
-    setTool, setColorIndex, getViewport, setViewport, initViewport,
+    activeTool, activeColorIndex, isDrawing, viewports, previewZooms,
+    setTool, setColorIndex, getViewport, setViewport, initViewport, setPreviewZoom,
   }
 }, {
   persist: {
