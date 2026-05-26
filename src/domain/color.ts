@@ -13,7 +13,7 @@ export function makeColor(name = 'New color'): Color {
 }
 
 export function makePalette(name = 'Default'): Palette {
-  return { id: uid(), name, colors: [makeTransparentColor()] }
+  return { id: uid(), name, description: '', colors: [makeTransparentColor()] }
 }
 
 export function makeLayer(width: number, height: number, name = 'Layer'): Layer {

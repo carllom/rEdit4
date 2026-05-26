@@ -26,7 +26,12 @@ export interface Color {
 export interface Palette {
   id: string
   name: string
+  description: string
   colors: Color[]  // index 0 = transparent (reserved, always present)
+}
+
+export interface PaletteTemplate extends Palette {
+  isBuiltIn: boolean
 }
 
 export interface Layer {
