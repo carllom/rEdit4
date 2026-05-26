@@ -304,6 +304,56 @@ The sidebar is present across all tabs. The active editor fills the remaining sp
 Initially implements: Draw, Erase, Fill (flood), Eyedropper.
 Later: Line, Rectangle, Color Manipulation (lighten/darken/saturate/desaturate).
 
+### Tool Variants
+
+Each drawing Tool supports named Variants exposed as a compact sub-row of Lucide icon buttons in the sidebar, directly below the active tool. Tools with no variants show no sub-row.
+
+**Interaction model:**
+
+- Clicking a sub-button jumps directly to that variant.
+- Re-clicking the main tool button (when already active) cycles round-robin to the next variant.
+- Re-pressing the tool's keyboard shortcut (when already active) also cycles round-robin.
+- Sub-button tooltips show the variant name only (e.g. `"Pixel-perfect"`).
+- Main tool button tooltip includes a cycling hint: e.g. `"Rectangle (R · R to cycle)"`.
+
+**Data model:** `toolVariants: Record<Tool, string>` in `usePaintStore`, persisted alongside `activeTool`. Variants are mutually exclusive per tool (single string, radio model). See ADR 0006.
+
+**Icon mapping** (all from `@lucide/vue`):
+
+| Tool | Variant | Icon | Notes |
+| --- | --- | --- | --- |
+| Draw | Dot | `Dot` | — |
+| Draw | Connected | `PenLine` | — |
+| Draw | Pixel-perfect | `PencilRuler` | — |
+| Draw | Bezier | `Spline` | — |
+| Rectangle | Outline | `Square` | Default Lucide stroke-only style |
+| Rectangle | Filled | `Square` | Same icon with CSS `fill: currentColor; stroke: none` |
+| Fill | Flood | `PaintBucket` | — |
+| Fill | Replace | `ReplaceAll` | — |
+| Erase | Normal | `Eraser` | — |
+| Erase | Clear | `BrushCleaning` | — |
+
+**Default variants** (first launch / no persisted state):
+
+| Tool | Default |
+| --- | --- |
+| Draw | Connected |
+| Rectangle | Filled |
+| Fill | Flood |
+| Erase | Normal |
+
+**Variants per tool:**
+
+| Tool | Variants | Notes |
+| --- | --- | --- |
+| Draw | Dot, Connected, Pixel-perfect, Bezier | Dot: stamps at sampled positions only (may leave gaps). Connected: interpolates between positions (no gaps). Pixel-perfect: connected + Bresenham diagonal-preferring (avoids staircases). Bezier: bezierizes the completed path on mouseup. Each mode implies the previous. **Pixel-perfect and Bezier are not yet implemented.** |
+| Rectangle | Filled, Outline | — |
+| Ellipse | Filled, Outline | — |
+| Fill | Flood, Replace | Flood: 4-connected flood fill (current). Replace: replaces all pixels of the clicked colour index across the entire layer. |
+| Erase | Normal, Clear | Normal: erase at cursor (current). Clear: removes all pixels of the clicked colour index across the entire layer. |
+| Line | — | No variants planned yet. |
+| Eyedropper | — | No variants planned. |
+
 ### Palette Panel
 - Displays all swatches for the active palette as a color grid
 - Click to select active color (highlighted with index indicator)
@@ -402,7 +452,8 @@ Alongside the PNG, generate a CSS file with `background-position` classes per sp
 - ✓ Export image as PNG (composite all visible layers) _verified_
 - ✓ Export single layer as PNG _verified_
 - ☐ Project file export/import (`.redit` ZIP format) → moved to Phase 5
-- ☐ Flash Card Preview: Backquote key hold → composited image centered overlay (configurable background, per-image session zoom)
+- ✓ Flash Card Preview: Backquote key hold → composited image centered overlay (configurable background, per-image session zoom)
+- ✓ Tool variants: Draw (Connected, Pixel-perfect, Bezier), Erase (Normal, Clear), Fill (Flood, Replace), Rectangle (Filled, Outline), Ellipse (Filled, Outline) — variant buttons in sub-row below main tool selector; cycle via re-click or keyboard shortcut _verified_
 
 ### Phase 2 — Sprite Editor
 - Compose images into sprites
@@ -431,55 +482,6 @@ Alongside the PNG, generate a CSS file with `background-position` classes per sp
 ---
 
 ## Deferred Design Decisions
-
-### Tool Variants
-
-Each drawing Tool supports named Variants exposed as a compact sub-row of Lucide icon buttons in the sidebar, directly below the active tool. Tools with no variants show no sub-row.
-
-**Interaction model:**
-
-- Clicking a sub-button jumps directly to that variant.
-- Re-clicking the main tool button (when already active) cycles round-robin to the next variant.
-- Re-pressing the tool's keyboard shortcut (when already active) also cycles round-robin.
-- Sub-button tooltips show the variant name only (e.g. `"Pixel-perfect"`).
-- Main tool button tooltip includes a cycling hint: e.g. `"Rectangle (R · R to cycle)"`.
-
-**Data model:** `toolVariants: Record<Tool, string>` in `usePaintStore`, persisted alongside `activeTool`. Variants are mutually exclusive per tool (single string, radio model). See ADR 0006.
-
-**Icon mapping** (all from `@lucide/vue`):
-
-| Tool | Variant | Icon | Notes |
-| --- | --- | --- | --- |
-| Draw | Dot | `Dot` | — |
-| Draw | Connected | `PenLine` | — |
-| Draw | Pixel-perfect | `PencilRuler` | — |
-| Draw | Bezier | `Spline` | — |
-| Rectangle | Outline | `Square` | Default Lucide stroke-only style |
-| Rectangle | Filled | `Square` | Same icon with CSS `fill: currentColor; stroke: none` |
-| Fill | Flood | `PaintBucket` | — |
-| Fill | Replace | `ReplaceAll` | — |
-| Erase | Normal | `Eraser` | — |
-| Erase | Clear | `BrushCleaning` | — |
-
-**Default variants** (first launch / no persisted state):
-
-| Tool | Default |
-| --- | --- |
-| Draw | Connected |
-| Rectangle | Filled |
-| Fill | Flood |
-| Erase | Normal |
-
-**Planned variants per tool:**
-
-| Tool | Variants | Notes |
-| --- | --- | --- |
-| Draw | Dot, Connected, Pixel-perfect, Bezier | Dot: stamps at sampled positions only (may leave gaps). Connected: interpolates between positions (no gaps). Pixel-perfect: connected + Bresenham diagonal-preferring (avoids staircases). Bezier: bezierizes the completed path on mouseup. Each mode implies the previous. |
-| Rectangle | Filled, Outline | — |
-| Fill | Flood, Replace | Flood: 4-connected flood fill (current). Replace: replaces all pixels of the clicked colour index across the entire layer. |
-| Erase | Normal, Clear | Normal: erase at cursor (current). Clear: removes all pixels of the clicked colour index across the entire layer. |
-| Line | — | No variants planned yet. |
-| Eyedropper | — | No variants planned. |
 
 ### Shape Tool Preview Color Mode
 

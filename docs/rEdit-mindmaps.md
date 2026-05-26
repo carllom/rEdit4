@@ -46,6 +46,7 @@ Palette
 ### 2. Entity Functions (CRUD operations per entity)
 
 #### Image
+
 - Clone image
 - Edit image name
 - Add layer
@@ -57,6 +58,7 @@ Palette
   - Edit layer transparency
 
 #### Sprite
+
 - Clone sprite
 - Edit sprite name
 - Set sprite anchor position
@@ -65,6 +67,7 @@ Palette
 - Remove image
 
 #### Palette
+
 - Clone palette
 - Edit palette name
 - Add color
@@ -75,6 +78,7 @@ Palette
   - Edit values: rgb | hsl | cmyk | transparency
 
 #### Animation
+
 - Clone animation
 - Edit animation name
 - Add frame → select sprite
@@ -87,6 +91,7 @@ Palette
   - Set duration
 
 #### Sheet
+
 - Clone sheet
 - Edit sheet name
 - Import sprite → as composite | as images
@@ -97,21 +102,25 @@ Palette
 ### 3. UI Components
 
 #### Palette (Color Picker)
+
 - Color editor
 
 #### Image Editor
+
 - Bitmap editor (grid)
 - Layer list
 - Tool selector
 - Image preview
 
 #### Sprite Editor
+
 - Image picker
 - Image composer
   - Anchor point
 - Sprite preview
 
 #### Animation Editor
+
 - Sprite picker
 - Preview window
   - Onion skin settings
@@ -119,6 +128,7 @@ Palette
 - Timeline (Frames)
 
 #### Sheet Import
+
 - Selection view
 - Image preview
 
@@ -146,6 +156,7 @@ Palette
 *(Source: rEdit notes.txt)*
 
 #### Zoomed Editor
+
 - Grid decoration layer
 - Cursors: dot | rectangle | cross
 - Set anchor point for sprite
@@ -156,37 +167,44 @@ Palette
   - Eyedropper
 
 #### Merged Preview Window
+
 - Zoom functionality
 
 #### Layer Viewer / Manager
+
 - Layer transparency
 - Layer visibility
 - Active layer indicator
 - Merge | copy | add | delete layer
 
 #### Asset Manager
+
 - Drag/add assets to current sprite as new layer
 - Export sprite to assets
 - Multilayer assets? *(open question)*
 - How are assets arranged? *(open question)*
 
 #### Color Chooser
+
 - Palette selector
 - Variable amount of predefined hues
 - RGBA | HSL entry
 
 #### Palette Editor
+
 - Load/store palette
 - Add/remove color
 - RGBA | HSL entry
 - Color comment (annotation per color)
 
 #### Sheet Editor
+
 - Load/store sheet
 - Add/remove sprites from sheet
 - Space optimization
 
 #### Project Scope
+
 - Store sprites / assets / palettes / animations within a project scope
 
 ---
@@ -196,20 +214,26 @@ Palette
 ### Functionality Details (Implementation-Level)
 
 #### CanvasService
+
 Stateful service keeping the current paint state:
+
 - tool
 - pen position
 - paint layer
 - color
 
 #### CursorLayer
+
 Overlay layer component:
+
 - Optional gridlines
 - Display cursor
 - Generate cursor events
 
 #### ImageLayer
+
 Canvas element component per layer:
+
 - Contains the layer `<canvas>` element
 - Contains layer data (reference)
 - Size determined at creation time
