@@ -2,6 +2,10 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Project, ReImage, Palette } from '../domain/model'
 import { uid, makePalette, makeImage } from '../domain/color'
+import { clonePalette } from '../domain/paletteOps'
+import { usePaletteTemplateStore } from './paletteTemplateStore'
+
+const FALLBACK_PALETTE_ID = 'builtin-cga'
 
 export const useProjectStore = defineStore('project', () => {
   const project = ref<Project | null>(null)
@@ -9,8 +13,12 @@ export const useProjectStore = defineStore('project', () => {
 
   const hasProject = computed(() => project.value !== null)
 
-  function newProject(name = 'Untitled') {
-    const palette = makePalette('Default')
+  function newProject(name = 'Untitled', initialPaletteTemplateId?: string) {
+    const templates = usePaletteTemplateStore()
+    const id = initialPaletteTemplateId ?? FALLBACK_PALETTE_ID
+    const all = [...templates.builtIn, ...templates.userTemplates]
+    const template = all.find((t: Palette) => t.id === id) ?? all.find((t: Palette) => t.id === FALLBACK_PALETTE_ID)
+    const palette = template ? clonePalette(template) : makePalette('Default')
     project.value = {
       id: uid(),
       name,

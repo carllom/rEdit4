@@ -21,6 +21,11 @@ Each Image references exactly one Palette; pixel data stores indices into that P
 A pre-defined Palette that can be loaded as a starting point (e.g. EGA, CGA, GameBoy).
 Managed in the Palette Manager tab — not in the sidebar editor.
 
+### Default Palette Template
+
+The Palette Template automatically cloned into a new Project's palette list when the Project is created.
+Configured as an Application Setting in the Project Settings Category. References a template by ID; resolves to CGA if the referenced template no longer exists (e.g. a user template was deleted).
+
 ### Color Cycling
 
 A retro animation technique where palette indices are rotated on a timer, creating motion
@@ -103,7 +108,7 @@ Organised into named Settings Categories (e.g. General, Editor) displayed in a p
 ### Settings Category
 
 A named group of related Application Settings shown as a panel in the Settings view.
-Current categories: General (auto-save frequency), Editor (isometric snap, cursor opacity, preview background).
+Current categories: General (auto-save frequency), Editor (isometric snap, cursor opacity, preview background), Project (default palette template).
 
 ### Preview Background
 

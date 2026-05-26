@@ -4,12 +4,14 @@ import { useRouter } from 'vue-router'
 import type { Component } from 'vue'
 import GeneralSettings from './settings/GeneralSettings.vue'
 import EditorSettings from './settings/EditorSettings.vue'
+import ProjectSettings from './settings/ProjectSettings.vue'
 
 const router = useRouter()
 
 const categories: { id: string; label: string; component: Component }[] = [
   { id: 'general', label: 'General', component: GeneralSettings },
   { id: 'editor',  label: 'Editor',  component: EditorSettings  },
+  { id: 'project', label: 'Project', component: ProjectSettings },
 ]
 
 const activeCategoryId = ref('general')

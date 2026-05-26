@@ -19,7 +19,7 @@ const appTabs = [
   { label: 'Palettes',  path: '/palettes'  },
 ]
 const editor = useEditorStore()
-const { settings } = useSettingsStore()
+const { settings, resolvedDefaultPaletteId } = useSettingsStore()
 
 // --- Project rename ---
 const renamingProject = ref(false)
@@ -64,7 +64,7 @@ onMounted(async () => {
       editor.activePaletteId = saved.palettes[0].id
     }
   } else {
-    project.newProject()
+    project.newProject('Untitled', resolvedDefaultPaletteId.value)
     if (project.project?.palettes[0]) {
       editor.activePaletteId = project.project.palettes[0].id
     }

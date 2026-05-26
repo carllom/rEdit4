@@ -34,6 +34,8 @@ export interface PaletteTemplate extends Palette {
   isBuiltIn: boolean
 }
 
+export type PaletteKind = 'project' | 'builtin' | 'user-template'
+
 export interface Layer {
   id: string
   name: string
