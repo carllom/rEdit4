@@ -4,6 +4,7 @@ import SpriteEditorView from '../views/SpriteEditorView.vue'
 import AnimationEditorView from '../views/AnimationEditorView.vue'
 import SheetEditorView from '../views/SheetEditorView.vue'
 import SettingsView from '../views/SettingsView.vue'
+import PalettesView from '../views/PalettesView.vue'
 
 export default createRouter({
   history: createWebHashHistory(),
@@ -13,5 +14,6 @@ export default createRouter({
     { path: '/animation',  component: AnimationEditorView },
     { path: '/sheet',      component: SheetEditorView    },
     { path: '/settings',   component: SettingsView       },
+    { path: '/palettes',   component: PalettesView       },
   ],
 })
