@@ -3,6 +3,7 @@ import { createPinia } from 'pinia'
 import piniaPersistedState from 'pinia-plugin-persistedstate'
 import router from './router'
 import App from './App.vue'
+import './styles/tokens.css'
 
 const pinia = createPinia()
 pinia.use(piniaPersistedState)

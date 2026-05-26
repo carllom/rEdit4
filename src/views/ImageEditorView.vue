@@ -138,42 +138,43 @@ async function exportPNG() {
 .image-toolbar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 8px;
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
+  gap: var(--rd-space-4);
+  padding: var(--rd-space-2) var(--rd-space-4);
+  background: var(--rd-color-surface-1);
+  border-bottom: var(--rd-border-w) solid var(--rd-color-border);
   flex-shrink: 0;
 }
 
 .toolbar-btn {
-  padding: 3px 10px;
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  border-radius: 3px;
-  color: var(--color-text);
+  padding: 3px var(--rd-space-5);
+  background: var(--rd-color-surface-2);
+  border: var(--rd-border-w) solid var(--rd-color-border);
+  border-radius: var(--rd-radius-1);
+  color: var(--rd-color-text);
   cursor: pointer;
-  font-size: 11px;
+  font-size: var(--rd-text-11);
   white-space: nowrap;
 }
-.toolbar-btn:hover { background: var(--color-surface-3); }
+.toolbar-btn:hover { background: var(--rd-color-surface-3); border-color: var(--rd-color-text-muted); }
+.toolbar-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.image-tabs { display: flex; gap: 2px; overflow-x: auto; }
+.image-tabs { display: flex; gap: var(--rd-space-1); overflow-x: auto; }
 
 .image-tab {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 6px 3px 10px;
+  gap: var(--rd-space-2);
+  padding: 3px var(--rd-space-3) 3px var(--rd-space-5);
   background: none;
-  border: 1px solid transparent;
-  color: var(--color-text-muted);
+  border: var(--rd-border-w) solid transparent;
+  color: var(--rd-color-text-muted);
   cursor: pointer;
-  font-size: 11px;
-  border-radius: 3px 3px 0 0;
+  font-size: var(--rd-text-11);
+  border-radius: var(--rd-radius-1) var(--rd-radius-1) 0 0;
   white-space: nowrap;
 }
-.image-tab:hover { color: var(--color-text); background: var(--color-surface-2); }
-.image-tab.active { color: var(--color-text); background: var(--color-surface-2); border-color: var(--color-border); }
+.image-tab:hover { color: var(--rd-color-text); background: var(--rd-color-surface-2); }
+.image-tab.active { color: var(--rd-color-text); background: var(--rd-color-surface-2); border-color: var(--rd-color-border); }
 
 .tab-close {
   display: flex;
@@ -184,17 +185,17 @@ async function exportPNG() {
   padding: 0;
   background: none;
   border: none;
-  border-radius: 2px;
-  color: var(--color-text-muted);
-  font-size: 13px;
+  border-radius: var(--rd-radius-1);
+  color: var(--rd-color-text-muted);
+  font-size: var(--rd-text-13);
   line-height: 1;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.1s;
+  transition: opacity var(--rd-duration-fast) var(--rd-easing-standard);
   flex-shrink: 0;
 }
 .image-tab:hover .tab-close { opacity: 1; }
-.tab-close:hover { background: var(--color-surface-3); color: var(--color-danger); }
+.tab-close:hover { background: var(--rd-color-surface-3); color: var(--rd-color-danger); }
 
 .editor-area { display: flex; flex: 1; overflow: hidden; }
 
@@ -204,7 +205,7 @@ async function exportPNG() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  color: var(--color-text-muted);
+  gap: var(--rd-space-6);
+  color: var(--rd-color-text-muted);
 }
 </style>

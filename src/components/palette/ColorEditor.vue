@@ -56,72 +56,75 @@ function setA(v: number) { props.color.a = clamp(v); emit('change') }
 
 <style scoped>
 .color-editor {
-  padding: 6px 8px;
+  padding: var(--rd-space-3) var(--rd-space-4);
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  border-top: 1px solid var(--color-border);
+  gap: var(--rd-space-2);
+  border-top: var(--rd-border-w) solid var(--rd-color-border);
 }
 
 .preview-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 2px;
+  gap: var(--rd-space-3);
+  margin-bottom: var(--rd-space-1);
 }
 
 .preview {
   width: 28px;
   height: 28px;
-  border-radius: 3px;
-  border: 1px solid var(--color-border);
+  border-radius: var(--rd-radius-2);
+  border: var(--rd-border-w) solid var(--rd-color-border);
   flex-shrink: 0;
-  background-image: linear-gradient(45deg, #555 25%, transparent 25%),
-    linear-gradient(-45deg, #555 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #555 75%),
-    linear-gradient(-45deg, transparent 75%, #555 75%);
+  background-image:
+    linear-gradient(45deg, var(--rd-color-checker-light) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--rd-color-checker-light) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--rd-color-checker-light) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--rd-color-checker-light) 75%);
   background-size: 8px 8px;
   background-position: 0 0, 0 4px, 4px -4px, -4px 0;
-  background-color: #333;
+  background-color: var(--rd-color-checker-dark);
 }
 
 .hex-input {
   flex: 1;
-  background: var(--color-surface-3);
-  border: 1px solid var(--color-border);
-  border-radius: 3px;
-  color: var(--color-text);
-  font-size: 12px;
-  font-family: monospace;
+  background: var(--rd-color-surface-3);
+  border: var(--rd-border-w) solid var(--rd-color-border);
+  border-radius: var(--rd-radius-1);
+  color: var(--rd-color-text);
+  font-size: var(--rd-text-12);
+  font-family: var(--rd-font-mono);
   padding: 4px 6px;
   outline: none;
 }
-.hex-input:focus { border-color: var(--color-accent); }
+.hex-input:focus { border-color: var(--rd-color-accent); }
 
 .channel-row {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--rd-space-2);
 }
 
 .channel-label {
   width: 12px;
-  font-size: 10px;
-  color: var(--color-text-muted);
+  font-size: var(--rd-text-10);
+  color: var(--rd-color-text-muted);
   flex-shrink: 0;
-  font-weight: 600;
+  font-weight: var(--rd-weight-semibold);
 }
 
 .channel-num {
   width: 46px;
-  background: var(--color-surface-3);
-  border: 1px solid var(--color-border);
-  border-radius: 3px;
-  color: var(--color-text);
-  font-size: 11px;
+  background: var(--rd-color-surface-3);
+  border: var(--rd-border-w) solid var(--rd-color-border);
+  border-radius: var(--rd-radius-1);
+  color: var(--rd-color-text);
+  font-size: var(--rd-text-11);
   padding: 2px 4px;
   text-align: right;
   outline: none;
+  font-family: var(--rd-font-mono);
+  font-variant-numeric: tabular-nums;
 }
-.channel-num:focus { border-color: var(--color-accent); }
+.channel-num:focus { border-color: var(--rd-color-accent); }
 </style>

@@ -1,0 +1,119 @@
+/* ============================================================
+   rEdit4 — Design tokens
+   ------------------------------------------------------------
+   Formalized from the codebase, with inconsistencies resolved.
+   Imported once in main.ts.  Prefix: --rd-*
+   ============================================================ */
+
+:root {
+  /* ── Surface palette ─────────────────────────────────────── */
+  --rd-color-bg:           #1a1a1a;
+  --rd-color-surface-1:    #252526;
+  --rd-color-surface-2:    #2d2d2d;
+  --rd-color-surface-3:    #3a3a3a;
+  --rd-color-border:       #3c3c3c;
+
+  /* ── Text ─────────────────────────────────────────────────── */
+  --rd-color-text:         #cccccc;
+  --rd-color-text-muted:   #888888;
+  --rd-color-text-strong:  #ffffff;
+
+  /* ── Accent ──────────────────────────────────────────────── */
+  --rd-color-accent:        #4fc3f7;
+  --rd-color-accent-hover:  #81d4fa;
+  --rd-color-accent-fg:     #0a1620;
+  --rd-color-accent-soft:        rgba(79, 195, 247, 0.12);
+  --rd-color-accent-soft-border: rgba(79, 195, 247, 0.30);
+
+  /* ── Semantic ─────────────────────────────────────────────── */
+  --rd-color-danger:        #f44747;
+  --rd-color-danger-fg:     #ffffff;
+  --rd-color-danger-soft:        rgba(244, 71, 71, 0.10);
+  --rd-color-danger-soft-border: rgba(244, 71, 71, 0.35);
+
+  --rd-color-success:       #81c784;
+  --rd-color-success-fg:    #0a1f0c;
+  --rd-color-success-soft:        rgba(129, 199, 132, 0.10);
+  --rd-color-success-soft-border: rgba(129, 199, 132, 0.35);
+
+  --rd-color-warning:       #ffb74d;
+  --rd-color-warning-fg:    #1f1408;
+  --rd-color-warning-soft:        rgba(255, 183, 77, 0.10);
+  --rd-color-warning-soft-border: rgba(255, 183, 77, 0.35);
+
+  /* ── Special-purpose ─────────────────────────────────────── */
+  --rd-color-checker-dark:  #333333;
+  --rd-color-checker-light: #555555;
+  --rd-color-overlay:       rgba(0, 0, 0, 0.55);
+
+  /* ── Typography ──────────────────────────────────────────── */
+  --rd-font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --rd-font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --rd-text-9:   9px;
+  --rd-text-10:  10px;
+  --rd-text-11:  11px;
+  --rd-text-12:  12px;
+  --rd-text-13:  13px;
+  --rd-text-14:  14px;
+  --rd-text-16:  16px;
+
+  --rd-leading-tight:   1.2;
+  --rd-leading-normal:  1.4;
+  --rd-leading-relaxed: 1.5;
+
+  --rd-weight-regular:  400;
+  --rd-weight-medium:   500;
+  --rd-weight-semibold: 600;
+  --rd-weight-bold:     700;
+
+  --rd-tracking-wide:   0.06em;
+  --rd-tracking-brand:  0.08em;
+
+  /* ── Spacing scale ────────────────────────────────────────── */
+  --rd-space-0:    0;
+  --rd-space-1:    2px;
+  --rd-space-2:    4px;
+  --rd-space-3:    6px;
+  --rd-space-4:    8px;
+  --rd-space-5:   10px;
+  --rd-space-6:   12px;
+  --rd-space-7:   16px;
+  --rd-space-8:   20px;
+  --rd-space-9:   24px;
+  --rd-space-10:  28px;
+
+  /* ── Borders & radii ──────────────────────────────────────── */
+  --rd-border-w:        1px;
+  --rd-border-w-active: 2px;
+
+  --rd-radius-0:  0;
+  --rd-radius-1:  2px;
+  --rd-radius-2:  3px;
+  --rd-radius-3:  6px;
+
+  /* ── Layout dimensions ────────────────────────────────────── */
+  --rd-sidebar-w:        240px;
+  --rd-sidebar-w-narrow: 160px;
+  --rd-sidebar-w-wide:   280px;
+  --rd-header-h:         34px;
+  --rd-toolbar-h:        28px;
+
+  --rd-hit-sm:  18px;
+  --rd-hit-md:  22px;
+  --rd-hit-lg:  26px;
+
+  /* ── Elevation / motion ──────────────────────────────────── */
+  --rd-shadow-dialog: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --rd-shadow-toast:  0 4px 16px rgba(0, 0, 0, 0.40);
+
+  --rd-duration-fast:   80ms;
+  --rd-duration-normal: 160ms;
+  --rd-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* ── Z-index scale ───────────────────────────────────────── */
+  --rd-z-sticky:   10;
+  --rd-z-dropdown: 100;
+  --rd-z-overlay:  1000;
+  --rd-z-toast:    1100;
+}

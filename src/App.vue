@@ -126,6 +126,9 @@ watch(() => project.isDirty, (dirty) => {
 </template>
 
 <style>
+/* Global reset + page chrome.
+   All design tokens live in src/styles/tokens.css (imported in main.ts). */
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 /* Hide number input spinners globally — keyboard arrows still work */
@@ -133,29 +136,19 @@ input[type='number'] { -moz-appearance: textfield; }
 input[type='number']::-webkit-outer-spin-button,
 input[type='number']::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
-:root {
-  --color-bg:           #1e1e1e;
-  --color-surface:      #252526;
-  --color-surface-2:    #2d2d2d;
-  --color-surface-3:    #3a3a3a;
-  --color-border:       #3c3c3c;
-  --color-text:         #cccccc;
-  --color-text-muted:   #888888;
-  --color-accent:       #4fc3f7;
-  --color-accent-hover: #81d4fa;
-  --color-danger:       #f44747;
-  --sidebar-width:      240px;
-  --header-height:      34px;
-}
+/* Form controls inherit the document font instead of the UA default */
+input, button, select, textarea { font-family: inherit; }
 
 html, body, #app {
   height: 100%;
-  background: var(--color-bg);
-  color: var(--color-text);
-  font-family: system-ui, -apple-system, sans-serif;
-  font-size: 12px;
+  background: var(--rd-color-bg);
+  color: var(--rd-color-text);
+  font-family: var(--rd-font-sans);
+  font-size: var(--rd-text-12);
+  line-height: var(--rd-leading-normal);
   overflow: hidden;
   user-select: none;
+  -webkit-font-smoothing: antialiased;
 }
 </style>
 
@@ -163,41 +156,50 @@ html, body, #app {
 .app { display: flex; flex-direction: column; height: 100%; }
 
 .app-header {
-  height: var(--header-height);
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
+  height: var(--rd-header-h);
+  background: var(--rd-color-surface-1);
+  border-bottom: var(--rd-border-w) solid var(--rd-color-border);
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 12px;
+  gap: var(--rd-space-6);
+  padding: 0 var(--rd-space-6);
   flex-shrink: 0;
 }
 
-.app-title { font-weight: 700; letter-spacing: 0.08em; color: var(--color-accent); font-size: 13px; }
-.project-name { color: var(--color-text-muted); font-size: 11px; cursor: default; }
+.app-title {
+  font-weight: var(--rd-weight-bold);
+  letter-spacing: var(--rd-tracking-brand);
+  color: var(--rd-color-accent);
+  font-size: var(--rd-text-13);
+}
+.project-name {
+  color: var(--rd-color-text-muted);
+  font-size: var(--rd-text-11);
+  cursor: default;
+}
 
 .settings-btn {
   margin-left: auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: var(--rd-hit-md);
+  height: var(--rd-hit-md);
   padding: 0;
   background: none;
   border: none;
-  border-radius: 3px;
-  color: var(--color-text-muted);
+  border-radius: var(--rd-radius-1);
+  color: var(--rd-color-text-muted);
   cursor: pointer;
 }
-.settings-btn:hover { color: var(--color-text); background: var(--color-surface-3); }
-.dirty-marker { color: var(--color-accent); }
+.settings-btn:hover { color: var(--rd-color-text); background: var(--rd-color-surface-3); }
+.dirty-marker { color: var(--rd-color-accent); }
 .project-rename-input {
-  background: var(--color-surface-3);
-  border: 1px solid var(--color-accent);
-  border-radius: 2px;
-  color: var(--color-text);
-  font-size: 11px;
+  background: var(--rd-color-surface-3);
+  border: var(--rd-border-w) solid var(--rd-color-accent);
+  border-radius: var(--rd-radius-1);
+  color: var(--rd-color-text);
+  font-size: var(--rd-text-11);
   padding: 1px 5px;
   outline: none;
   width: 160px;
@@ -205,25 +207,25 @@ html, body, #app {
 
 .app-nav-tabs {
   display: flex;
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
+  background: var(--rd-color-surface-1);
+  border-bottom: var(--rd-border-w) solid var(--rd-color-border);
   flex-shrink: 0;
-  padding: 0 6px;
-  gap: 2px;
+  padding: 0 var(--rd-space-3);
+  gap: var(--rd-space-1);
 }
 
 .nav-tab {
   background: none;
   border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--color-text-muted);
-  font-size: 11px;
+  border-bottom: var(--rd-border-w-active) solid transparent;
+  color: var(--rd-color-text-muted);
+  font-size: var(--rd-text-11);
   padding: 5px 10px 4px;
   cursor: pointer;
   white-space: nowrap;
 }
-.nav-tab:hover { color: var(--color-text); }
-.nav-tab.active { color: var(--color-text); border-bottom-color: var(--color-accent); }
+.nav-tab:hover { color: var(--rd-color-text); }
+.nav-tab.active { color: var(--rd-color-text); border-bottom-color: var(--rd-color-accent); }
 
 .app-body { display: flex; flex: 1; overflow: hidden; }
 .app-main { flex: 1; overflow: hidden; display: flex; flex-direction: column; }

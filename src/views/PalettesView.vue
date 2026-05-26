@@ -305,10 +305,10 @@ function deleteUserTemplate() {
 
 /* ── Selector panel ── */
 .selector-panel {
-  width: 280px;
+  width: var(--rd-sidebar-w-wide);
   flex-shrink: 0;
-  background: var(--color-surface);
-  border-right: 1px solid var(--color-border);
+  background: var(--rd-color-surface-1);
+  border-right: var(--rd-border-w) solid var(--rd-color-border);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -317,73 +317,77 @@ function deleteUserTemplate() {
 .section-header {
   display: flex;
   align-items: center;
-  padding: 6px 6px 4px 10px;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: var(--color-text-muted);
+  padding: var(--rd-space-3) var(--rd-space-3) var(--rd-space-2) var(--rd-space-5);
+  font-size: var(--rd-text-10);
+  font-weight: var(--rd-weight-semibold);
+  letter-spacing: var(--rd-tracking-wide);
+  color: var(--rd-color-text-muted);
   text-transform: uppercase;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
+  border-bottom: var(--rd-border-w) solid var(--rd-color-border);
+  background: var(--rd-color-surface-1);
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: var(--rd-z-sticky);
 }
 
 .section-header--templates {
-  margin-top: 8px;
-  border-top: 1px solid var(--color-border);
+  margin-top: var(--rd-space-4);
+  border-top: var(--rd-border-w) solid var(--rd-color-border);
 }
 
 .header-new-btn {
   margin-left: auto;
-  width: 18px;
-  height: 18px;
+  width: var(--rd-hit-sm);
+  height: var(--rd-hit-sm);
   padding: 0;
   line-height: 1;
-  font-size: 14px;
+  font-size: var(--rd-text-14);
   background: none;
-  border: 1px solid var(--color-border);
-  border-radius: 2px;
-  color: var(--color-text-muted);
+  border: var(--rd-border-w) solid var(--rd-color-border);
+  border-radius: var(--rd-radius-1);
+  color: var(--rd-color-text-muted);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.header-new-btn:hover { color: var(--color-text); background: var(--color-surface-3); }
+.header-new-btn:hover { color: var(--rd-color-text); background: var(--rd-color-surface-3); }
 
 .section-empty {
-  padding: 8px 10px;
-  font-size: 11px;
-  color: var(--color-text-muted);
+  padding: var(--rd-space-4) var(--rd-space-5);
+  font-size: var(--rd-text-11);
+  color: var(--rd-color-text-muted);
 }
 
 .palette-entry {
   display: block;
   width: 100%;
   text-align: left;
-  padding: 8px 10px;
+  padding: var(--rd-space-4) var(--rd-space-5);
   border: none;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: var(--rd-border-w) solid var(--rd-color-border);
   background: none;
-  color: var(--color-text);
+  color: var(--rd-color-text);
   cursor: pointer;
+  border-left: var(--rd-border-w-active) solid transparent;
 }
-.palette-entry:hover { background: var(--color-surface-2); }
-.palette-entry.selected { background: var(--color-surface-3); }
+.palette-entry:hover { background: var(--rd-color-surface-2); }
+.palette-entry.selected {
+  background: var(--rd-color-surface-2);
+  border-left-color: var(--rd-color-accent);
+}
 
 .entry-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--rd-space-3);
   margin-bottom: 3px;
 }
 
 .entry-name {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--color-text);
+  font-size: var(--rd-text-12);
+  font-weight: var(--rd-weight-medium);
+  color: var(--rd-color-text);
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
@@ -391,31 +395,33 @@ function deleteUserTemplate() {
 }
 
 .entry-count {
-  font-size: 10px;
-  color: var(--color-text-muted);
+  font-size: var(--rd-text-10);
+  color: var(--rd-color-text-muted);
   flex-shrink: 0;
 }
 
 .entry-badge {
-  font-size: 9px;
+  font-size: var(--rd-text-9);
   padding: 1px 4px;
-  border-radius: 2px;
+  border-radius: var(--rd-radius-1);
   flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: var(--rd-tracking-wide);
 }
 .entry-badge--builtin {
-  background: var(--color-surface-3);
-  color: var(--color-text-muted);
-  border: 1px solid var(--color-border);
+  background: var(--rd-color-surface-3);
+  color: var(--rd-color-text-muted);
+  border: var(--rd-border-w) solid var(--rd-color-border);
 }
 .entry-badge--user {
-  background: rgba(79, 195, 247, 0.12);
-  color: var(--color-accent);
-  border: 1px solid rgba(79, 195, 247, 0.3);
+  background: var(--rd-color-accent-soft);
+  color: var(--rd-color-accent);
+  border: var(--rd-border-w) solid var(--rd-color-accent-soft-border);
 }
 
 .entry-desc {
-  font-size: 10px;
-  color: var(--color-text-muted);
+  font-size: var(--rd-text-10);
+  color: var(--rd-color-text-muted);
   margin-bottom: 5px;
   line-height: 1.3;
 }
@@ -433,13 +439,13 @@ function deleteUserTemplate() {
 
 .swatch-transparent {
   background-image:
-    linear-gradient(45deg, #555 25%, transparent 25%),
-    linear-gradient(-45deg, #555 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #555 75%),
-    linear-gradient(-45deg, transparent 75%, #555 75%);
+    linear-gradient(45deg, var(--rd-color-checker-light) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--rd-color-checker-light) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--rd-color-checker-light) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--rd-color-checker-light) 75%);
   background-size: 6px 6px;
   background-position: 0 0, 0 3px, 3px -3px, -3px 0px;
-  background-color: #333;
+  background-color: var(--rd-color-checker-dark);
 }
 
 /* ── Editor panel ── */
@@ -453,137 +459,141 @@ function deleteUserTemplate() {
 .editor-panel-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
+  gap: var(--rd-space-4);
+  padding: var(--rd-space-4) var(--rd-space-7);
+  border-bottom: var(--rd-border-w) solid var(--rd-color-border);
+  background: var(--rd-color-surface-1);
   flex-shrink: 0;
 }
 
 .editor-name-input {
   flex: 1;
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  border-radius: 2px;
-  color: var(--color-text);
-  font-size: 13px;
-  font-weight: 600;
+  background: var(--rd-color-surface-3);
+  border: var(--rd-border-w) solid var(--rd-color-border);
+  border-radius: var(--rd-radius-1);
+  color: var(--rd-color-text);
+  font-size: var(--rd-text-13);
+  font-weight: var(--rd-weight-semibold);
   padding: 3px 7px;
   outline: none;
 }
-.editor-name-input:focus { border-color: var(--color-accent); }
+.editor-name-input:focus { border-color: var(--rd-color-accent); }
 
 .editor-palette-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text);
+  font-size: var(--rd-text-13);
+  font-weight: var(--rd-weight-semibold);
+  color: var(--rd-color-text);
 }
 
 .editor-readonly-badge {
-  font-size: 10px;
+  font-size: var(--rd-text-9);
   padding: 2px 6px;
-  border-radius: 2px;
-  background: var(--color-surface-3);
-  color: var(--color-text-muted);
-  border: 1px solid var(--color-border);
+  border-radius: var(--rd-radius-1);
+  background: var(--rd-color-surface-3);
+  color: var(--rd-color-text-muted);
+  border: var(--rd-border-w) solid var(--rd-color-border);
+  text-transform: uppercase;
+  letter-spacing: var(--rd-tracking-wide);
 }
 
 .editor-user-badge {
-  font-size: 10px;
+  font-size: var(--rd-text-9);
   padding: 2px 6px;
-  border-radius: 2px;
-  background: rgba(79, 195, 247, 0.12);
-  color: var(--color-accent);
-  border: 1px solid rgba(79, 195, 247, 0.3);
+  border-radius: var(--rd-radius-1);
+  background: var(--rd-color-accent-soft);
+  color: var(--rd-color-accent);
+  border: var(--rd-border-w) solid var(--rd-color-accent-soft-border);
+  text-transform: uppercase;
+  letter-spacing: var(--rd-tracking-wide);
 }
 
 .editor-body {
-  padding: 14px 16px;
+  padding: var(--rd-space-7) var(--rd-space-7);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--rd-space-6);
 }
 
 .editor-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--rd-space-2);
 }
 
 .editor-label {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
+  font-size: var(--rd-text-10);
+  font-weight: var(--rd-weight-semibold);
+  letter-spacing: var(--rd-tracking-wide);
   text-transform: uppercase;
-  color: var(--color-text-muted);
+  color: var(--rd-color-text-muted);
 }
 
 .editor-desc-input {
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  border-radius: 2px;
-  color: var(--color-text);
-  font-size: 11px;
+  background: var(--rd-color-surface-3);
+  border: var(--rd-border-w) solid var(--rd-color-border);
+  border-radius: var(--rd-radius-1);
+  color: var(--rd-color-text);
+  font-size: var(--rd-text-11);
   font-family: inherit;
   padding: 5px 7px;
   outline: none;
   resize: vertical;
   min-height: 46px;
 }
-.editor-desc-input:focus { border-color: var(--color-accent); }
+.editor-desc-input:focus { border-color: var(--rd-color-accent); }
 
 .editor-desc-static {
-  font-size: 11px;
-  color: var(--color-text-muted);
-  line-height: 1.4;
+  font-size: var(--rd-text-11);
+  color: var(--rd-color-text-muted);
+  line-height: var(--rd-leading-normal);
 }
 
 .editor-section-title {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
+  font-size: var(--rd-text-10);
+  font-weight: var(--rd-weight-semibold);
+  letter-spacing: var(--rd-tracking-wide);
   text-transform: uppercase;
-  color: var(--color-text-muted);
-  padding-top: 4px;
-  border-top: 1px solid var(--color-border);
+  color: var(--rd-color-text-muted);
+  padding-top: var(--rd-space-2);
+  border-top: var(--rd-border-w) solid var(--rd-color-border);
 }
 
 .editor-actions {
   display: flex;
-  gap: 6px;
+  gap: var(--rd-space-3);
   flex-wrap: wrap;
 }
 
 .btn {
-  padding: 4px 10px;
-  font-size: 11px;
+  padding: 5px 12px;
+  font-size: var(--rd-text-12);
   font-family: inherit;
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  border-radius: 2px;
-  color: var(--color-text);
+  background: var(--rd-color-surface-3);
+  border: var(--rd-border-w) solid var(--rd-color-border);
+  border-radius: var(--rd-radius-1);
+  color: var(--rd-color-text);
   cursor: pointer;
 }
-.btn:hover { background: var(--color-surface-3); border-color: var(--color-text-muted); }
+.btn:hover { background: var(--rd-color-surface-2); border-color: var(--rd-color-text-muted); }
 
-.btn--danger { color: var(--color-danger); }
-.btn--danger:hover { border-color: var(--color-danger); }
+.btn--danger { color: var(--rd-color-danger); }
+.btn--danger:hover { border-color: var(--rd-color-danger); }
 
 .editor-msg {
-  font-size: 11px;
-  padding: 4px 8px;
-  border-radius: 2px;
-  border-left: 2px solid;
+  font-size: var(--rd-text-11);
+  padding: var(--rd-space-2) var(--rd-space-4);
+  border-radius: var(--rd-radius-1);
+  border-left: var(--rd-border-w-active) solid;
 }
 .editor-msg--error {
-  color: var(--color-danger);
-  border-left-color: var(--color-danger);
-  background: rgba(244, 71, 71, 0.08);
+  color: var(--rd-color-danger);
+  border-left-color: var(--rd-color-danger);
+  background: var(--rd-color-danger-soft);
 }
 .editor-msg--success {
-  color: #81c784;
-  border-left-color: #81c784;
-  background: rgba(129, 199, 132, 0.08);
+  color: var(--rd-color-success);
+  border-left-color: var(--rd-color-success);
+  background: var(--rd-color-success-soft);
 }
 
 .editor-panel-empty {
@@ -591,7 +601,7 @@ function deleteUserTemplate() {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-muted);
-  font-size: 13px;
+  color: var(--rd-color-text-muted);
+  font-size: var(--rd-text-13);
 }
 </style>

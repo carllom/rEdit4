@@ -16,9 +16,9 @@ import PalettePanel from '../palette/PalettePanel.vue'
 
 <style scoped>
 .sidebar {
-  width: var(--sidebar-width);
-  background: var(--color-surface);
-  border-right: 1px solid var(--color-border);
+  width: var(--rd-sidebar-w);
+  background: var(--rd-color-surface-1);
+  border-right: var(--rd-border-w) solid var(--rd-color-border);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -26,32 +26,32 @@ import PalettePanel from '../palette/PalettePanel.vue'
 }
 
 .divider {
-  height: 1px;
-  background: var(--color-border);
-  margin: 4px 0;
+  height: var(--rd-border-w);
+  background: var(--rd-color-border);
+  margin: var(--rd-space-2) 0;
 }
 
 .shortcut-hints {
   margin-top: auto;
-  padding: 6px 10px;
-  border-top: 1px solid var(--color-border);
+  padding: var(--rd-space-3) var(--rd-space-5);
+  border-top: var(--rd-border-w) solid var(--rd-color-border);
 }
 
 .hint-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 11px;
-  color: var(--color-text-muted);
+  font-size: var(--rd-text-11);
+  color: var(--rd-color-text-muted);
 }
 
 .key {
-  font-family: monospace;
-  font-size: 10px;
-  background: var(--color-surface-3);
-  border: 1px solid var(--color-border);
-  border-radius: 2px;
+  font-family: var(--rd-font-mono);
+  font-size: var(--rd-text-10);
+  background: var(--rd-color-surface-3);
+  border: var(--rd-border-w) solid var(--rd-color-border);
+  border-radius: var(--rd-radius-1);
   padding: 0 4px;
-  color: var(--color-text);
+  color: var(--rd-color-text);
 }
 </style>

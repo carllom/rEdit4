@@ -53,73 +53,75 @@ const { settings } = useSettingsStore()
 </template>
 
 <style scoped>
-.settings-panel { display: flex; flex-direction: column; gap: 2px; }
+.settings-panel { display: flex; flex-direction: column; gap: var(--rd-space-1); }
 
 .panel-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text);
-  margin-bottom: 16px;
+  font-size: var(--rd-text-13);
+  font-weight: var(--rd-weight-semibold);
+  color: var(--rd-color-text-strong);
+  margin-bottom: var(--rd-space-7);
 }
 
 .setting-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--color-border);
+  gap: var(--rd-space-9);
+  padding: var(--rd-space-4) 0;
+  border-bottom: var(--rd-border-w) solid var(--rd-color-border);
 }
 
 .setting-label {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--rd-space-1);
   min-width: 0;
 }
 
-.setting-name { font-size: 12px; color: var(--color-text); }
+.setting-name { font-size: var(--rd-text-12); color: var(--rd-color-text); }
 
-.setting-desc { font-size: 11px; color: var(--color-text-muted); }
+.setting-desc { font-size: var(--rd-text-11); color: var(--rd-color-text-muted); }
 
 .setting-control {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--rd-space-3);
   flex-shrink: 0;
 }
 
 .setting-control input[type='number'] {
   width: 52px;
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  border-radius: 3px;
-  color: var(--color-text);
-  font-size: 12px;
+  background: var(--rd-color-surface-3);
+  border: var(--rd-border-w) solid var(--rd-color-border);
+  border-radius: var(--rd-radius-1);
+  color: var(--rd-color-text);
+  font-size: var(--rd-text-12);
   padding: 3px 6px;
   text-align: right;
+  font-family: var(--rd-font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 .setting-control input[type='number']:focus {
   outline: none;
-  border-color: var(--color-accent);
+  border-color: var(--rd-color-accent);
 }
 
 .setting-control input[type='checkbox'] {
   width: 14px;
   height: 14px;
-  accent-color: var(--color-accent);
+  accent-color: var(--rd-color-accent);
   cursor: pointer;
 }
 
-.setting-unit { font-size: 11px; color: var(--color-text-muted); }
+.setting-unit { font-size: var(--rd-text-11); color: var(--rd-color-text-muted); }
 
 .setting-select {
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  border-radius: 3px;
-  color: var(--color-text);
-  font-size: 11px;
+  background: var(--rd-color-surface-3);
+  border: var(--rd-border-w) solid var(--rd-color-border);
+  border-radius: var(--rd-radius-1);
+  color: var(--rd-color-text);
+  font-size: var(--rd-text-11);
   padding: 3px 6px;
   cursor: pointer;
 }
@@ -128,9 +130,9 @@ const { settings } = useSettingsStore()
   width: 28px;
   height: 22px;
   padding: 1px;
-  border: 1px solid var(--color-border);
-  border-radius: 3px;
-  background: var(--color-surface-2);
+  border: var(--rd-border-w) solid var(--rd-color-border);
+  border-radius: var(--rd-radius-2);
+  background: var(--rd-color-surface-3);
   cursor: pointer;
 }
 </style>

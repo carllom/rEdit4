@@ -541,7 +541,7 @@ function onGlobalMouseup(e: MouseEvent) { if (e.button === 1 || e.button === 0) 
   flex: 1;
   overflow: hidden;
   position: relative;
-  background: #1e1e1e;
+  background: var(--rd-color-bg);
 }
 
 .canvas-stack {
@@ -557,34 +557,38 @@ function onGlobalMouseup(e: MouseEvent) { if (e.button === 1 || e.button === 0) 
 }
 
 .statusbar {
-  height: 22px;
-  background: var(--color-surface);
-  border-top: 1px solid var(--color-border);
-  padding: 2px 10px;
-  font-size: 11px;
-  color: var(--color-text-muted);
+  height: var(--rd-hit-md);
+  background: var(--rd-color-surface-1);
+  border-top: var(--rd-border-w) solid var(--rd-color-border);
+  padding: var(--rd-space-1) var(--rd-space-5);
+  font-size: var(--rd-text-11);
+  color: var(--rd-color-text-muted);
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--rd-space-1);
   flex-shrink: 0;
 }
 
 .zoom-btn {
   background: none;
-  border: 1px solid var(--color-border);
-  color: var(--color-text);
+  border: var(--rd-border-w) solid var(--rd-color-border);
+  color: var(--rd-color-text);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--rd-text-12);
   line-height: 1;
   padding: 0 5px;
-  border-radius: 2px;
+  border-radius: var(--rd-radius-1);
+  font-family: inherit;
 }
-.zoom-btn:hover { background: var(--color-surface-2); }
+.zoom-btn:hover { background: var(--rd-color-surface-2); }
 
+/* The flash-card preview is the only intentionally darker overlay in the
+   app (0.75 vs the standard 0.55 modal scrim) so the dimmed page stays
+   readable but recedes more than under a normal dialog. */
 .flash-overlay {
   position: absolute;
   inset: 0;
-  z-index: 10;
+  z-index: var(--rd-z-sticky);
   background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);

@@ -100,15 +100,15 @@ function toolTooltip(tool: ToolDef): string {
 
 <style scoped>
 .tool-selector {
-  padding: 6px 0;
+  padding: var(--rd-space-3) 0;
 }
 
 .section-label {
-  font-size: 10px;
+  font-size: var(--rd-text-10);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--color-text-muted);
-  padding: 4px 10px 2px;
+  letter-spacing: var(--rd-tracking-wide);
+  color: var(--rd-color-text-muted);
+  padding: var(--rd-space-2) var(--rd-space-5) var(--rd-space-1);
 }
 
 .tool-group {
@@ -121,68 +121,68 @@ function toolTooltip(tool: ToolDef): string {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 5px 10px;
+  padding: 5px var(--rd-space-5);
   background: none;
   border: none;
-  color: var(--color-text);
+  color: var(--rd-color-text);
   cursor: pointer;
   text-align: left;
-  font-size: 12px;
-  border-left: 2px solid transparent;
+  font-size: var(--rd-text-12);
+  border-left: var(--rd-border-w-active) solid transparent;
 }
 
 .tool-btn:hover {
-  background: var(--color-surface-2);
+  background: var(--rd-color-surface-2);
 }
 
 .tool-btn.active {
-  background: var(--color-surface-2);
-  border-left-color: var(--color-accent);
-  color: var(--color-accent);
+  background: var(--rd-color-surface-2);
+  border-left-color: var(--rd-color-accent);
+  color: var(--rd-color-accent);
 }
 
 .tool-key {
-  font-size: 10px;
-  color: var(--color-text-muted);
-  background: var(--color-surface-3);
-  border-radius: 2px;
+  font-size: var(--rd-text-10);
+  color: var(--rd-color-text-muted);
+  background: var(--rd-color-surface-3);
+  border-radius: var(--rd-radius-1);
   padding: 1px 4px;
-  font-family: monospace;
+  font-family: var(--rd-font-mono);
 }
 
 .variant-row {
   display: flex;
   flex-direction: row;
   gap: 3px;
-  padding: 3px 8px 5px 12px;
-  background: var(--color-surface-2);
-  border-left: 2px solid var(--color-accent);
+  padding: 3px var(--rd-space-4) 5px var(--rd-space-6);
+  background: var(--rd-color-surface-2);
+  border-left: var(--rd-border-w-active) solid var(--rd-color-accent);
 }
 
 .variant-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: var(--rd-hit-lg);
+  height: var(--rd-hit-lg);
   padding: 0;
   background: none;
-  border: 1px solid transparent;
-  border-radius: 3px;
-  color: var(--color-text-muted);
+  border: var(--rd-border-w) solid transparent;
+  border-radius: var(--rd-radius-2);
+  color: var(--rd-color-text-muted);
   cursor: pointer;
   flex-shrink: 0;
 }
 
 .variant-btn:hover {
-  background: var(--color-surface-3);
-  color: var(--color-text);
+  background: var(--rd-color-surface-3);
+  color: var(--rd-color-text);
 }
 
 .variant-btn.active {
-  color: var(--color-accent);
-  border-color: var(--color-accent);
-  background: var(--color-surface-3);
+  color: var(--rd-color-accent);
+  border-color: var(--rd-color-accent);
+  background: var(--rd-color-surface-3);
 }
 
 .variant-btn--filled :deep(path),

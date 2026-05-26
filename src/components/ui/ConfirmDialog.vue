@@ -36,48 +36,54 @@ function onKeydown(e: KeyboardEvent) {
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.55);
+  background: var(--rd-color-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--rd-z-overlay);
 }
 
 .dialog {
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  padding: 20px 24px;
+  background: var(--rd-color-surface-2);
+  border: var(--rd-border-w) solid var(--rd-color-border);
+  border-radius: var(--rd-radius-3);
+  box-shadow: var(--rd-shadow-dialog);
+  padding: var(--rd-space-8) var(--rd-space-9);
   width: 280px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--rd-space-6);
 }
 
 .dialog-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text);
+  font-size: var(--rd-text-14);
+  font-weight: var(--rd-weight-semibold);
+  color: var(--rd-color-text-strong);
 }
 
 .dialog-message {
-  font-size: 12px;
-  color: var(--color-text-muted);
-  line-height: 1.5;
+  font-size: var(--rd-text-12);
+  color: var(--rd-color-text-muted);
+  line-height: var(--rd-leading-relaxed);
 }
 
-.actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+.actions { display: flex; justify-content: flex-end; gap: var(--rd-space-4); margin-top: var(--rd-space-2); }
 
 .btn {
-  padding: 5px 14px;
-  border-radius: 3px;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface-3);
-  color: var(--color-text);
+  padding: 5px 12px;
+  border-radius: var(--rd-radius-1);
+  border: var(--rd-border-w) solid var(--rd-color-border);
+  background: var(--rd-color-surface-3);
+  color: var(--rd-color-text);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--rd-text-12);
 }
-.btn:hover { background: var(--color-surface); }
-.btn.danger { background: var(--color-danger); border-color: var(--color-danger); color: #fff; font-weight: 600; }
+.btn:hover { background: var(--rd-color-surface-2); border-color: var(--rd-color-text-muted); }
+.btn.danger {
+  background: var(--rd-color-danger);
+  border-color: var(--rd-color-danger);
+  color: var(--rd-color-danger-fg);
+  font-weight: var(--rd-weight-semibold);
+}
 .btn.danger:hover { opacity: 0.85; }
 </style>
