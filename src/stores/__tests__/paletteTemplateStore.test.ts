@@ -30,9 +30,9 @@ beforeEach(() => {
 // ─── builtIn ─────────────────────────────────────────────────────────────────
 
 describe('builtIn', () => {
-  it('contains all six built-in templates', () => {
+  it('contains all seven built-in templates', () => {
     const store = usePaletteTemplateStore()
-    expect(store.builtIn).toHaveLength(6)
+    expect(store.builtIn).toHaveLength(7)
   })
 
   it('all built-in templates have isBuiltIn: true', () => {
@@ -40,7 +40,7 @@ describe('builtIn', () => {
     expect(store.builtIn.every(t => t.isBuiltIn)).toBe(true)
   })
 
-  it('contains CGA, EGA, PICO-8, DB16 Dawnbringer, DB32 Dawnbringer, ZX Spectrum', () => {
+  it('contains CGA, EGA, PICO-8, DB16 Dawnbringer, DB32 Dawnbringer, VIC-II, ZX Spectrum', () => {
     const store = usePaletteTemplateStore()
     const names = store.builtIn.map(t => t.name)
     expect(names).toContain('CGA')
@@ -48,6 +48,7 @@ describe('builtIn', () => {
     expect(names).toContain('PICO-8')
     expect(names).toContain('DB16 Dawnbringer')
     expect(names).toContain('DB32 Dawnbringer')
+    expect(names).toContain('VIC-II')
     expect(names).toContain('ZX Spectrum')
   })
 
@@ -206,7 +207,7 @@ describe('deleteUserTemplate', () => {
   it('has no effect when called with a built-in name', () => {
     const store = usePaletteTemplateStore()
     store.deleteUserTemplate('CGA')
-    expect(store.builtIn).toHaveLength(6)
+    expect(store.builtIn).toHaveLength(7)
   })
 
   it('has no effect when called with an unknown name', () => {
