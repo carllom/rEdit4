@@ -15,6 +15,9 @@ concurrency:
   group: 'pages'
   cancel-in-progress: false
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -25,7 +28,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: 'npm'
 
       - name: Install dependencies
@@ -35,7 +38,7 @@ jobs:
         run: npm run test:run
 
       - name: Build project
-        run: npm run build -- --base /redit4/
+        run: npm run build -- --base /rEdit4/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
