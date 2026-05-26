@@ -118,6 +118,26 @@ const BUILT_IN: PaletteTemplate[] = [
     c('#8f974a', 143, 151,  74),
     c('#8a6f30', 138, 111,  48),
   ]),
+  // Pepto's calibrated PAL measurement — the reference used by VICE and most accurate emulators.
+  // Values derived from oscilloscope measurements of actual C64 hardware output.
+  makeBuiltIn('builtin-vic2', 'VIC-II', 'Commodore 64/128 VIC-II 16-color palette (Pepto calibration)', [
+    c('Black',        0,   0,   0),
+    c('White',      255, 255, 255),
+    c('Red',        104,  55,  43),
+    c('Cyan',       112, 164, 178),
+    c('Purple',     111,  61, 134),
+    c('Green',       88, 141,  67),
+    c('Blue',        53,  40, 121),
+    c('Yellow',     184, 199, 111),
+    c('Orange',     111,  79,  37),
+    c('Brown',       67,  57,   0),
+    c('Light Red',  154, 103,  89),
+    c('Dark Grey',   68,  68,  68),
+    c('Grey',       108, 108, 108),
+    c('Light Green',154, 210, 132),
+    c('Light Blue', 108,  94, 181),
+    c('Light Grey', 149, 149, 149),
+  ]),
   makeBuiltIn('builtin-zxspectrum', 'ZX Spectrum', 'Sinclair ZX Spectrum 16-color palette', [
     c('Black',         0,   0,   0),
     c('Blue',          0,   0, 215),

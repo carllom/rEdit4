@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { watch, onMounted, ref, nextTick } from 'vue'
-import { RouterView, useRouter } from 'vue-router'
+import { RouterView, useRouter, useRoute } from 'vue-router'
 import { Settings } from '@lucide/vue'
 import { useProjectStore } from './stores/projectStore'
 import { useEditorStore } from './stores/editorStore'
@@ -8,7 +8,16 @@ import { useSettingsStore } from './stores/settingsStore'
 import { loadProject, saveProject } from './storage/db'
 
 const router = useRouter()
+const route = useRoute()
 const project = useProjectStore()
+
+const appTabs = [
+  { label: 'Image',     path: '/'          },
+  { label: 'Sprite',    path: '/sprite'    },
+  { label: 'Animation', path: '/animation' },
+  { label: 'Sheet',     path: '/sheet'     },
+  { label: 'Palettes',  path: '/palettes'  },
+]
 const editor = useEditorStore()
 const { settings } = useSettingsStore()
 
@@ -100,6 +109,14 @@ watch(() => project.isDirty, (dirty) => {
         <Settings :size="13" />
       </button>
     </header>
+    <nav class="app-nav-tabs">
+      <button
+        v-for="tab in appTabs"
+        :key="tab.path"
+        :class="['nav-tab', { active: route.path === tab.path }]"
+        @click="router.push(tab.path)"
+      >{{ tab.label }}</button>
+    </nav>
     <div class="app-body">
       <main class="app-main">
         <RouterView />
@@ -185,6 +202,28 @@ html, body, #app {
   outline: none;
   width: 160px;
 }
+
+.app-nav-tabs {
+  display: flex;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  padding: 0 6px;
+  gap: 2px;
+}
+
+.nav-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  padding: 5px 10px 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.nav-tab:hover { color: var(--color-text); }
+.nav-tab.active { color: var(--color-text); border-bottom-color: var(--color-accent); }
 
 .app-body { display: flex; flex: 1; overflow: hidden; }
 .app-main { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
