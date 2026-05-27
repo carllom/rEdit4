@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import AppSidebar from '../components/ui/AppSidebar.vue'
+import AppButton from '../components/ui/AppButton.vue'
 import CanvasEditor from '../components/canvas/CanvasEditor.vue'
 import LayerPanel from '../components/layers/LayerPanel.vue'
 import NewImageDialog from '../components/canvas/NewImageDialog.vue'
@@ -73,8 +74,8 @@ async function exportPNG() {
     <AppSidebar />
     <div class="editor-main">
     <div class="image-toolbar">
-      <button class="toolbar-btn" @click="showNewImageDialog = true">+ New Image</button>
-      <button class="toolbar-btn" :disabled="!activeImage" @click="exportPNG">Export PNG</button>
+      <AppButton size="compact" @click="showNewImageDialog = true">+ New Image</AppButton>
+      <AppButton size="compact" :disabled="!activeImage" @click="exportPNG">Export PNG</AppButton>
       <div class="image-tabs">
         <div
           v-for="img in images"
@@ -95,11 +96,11 @@ async function exportPNG() {
       </template>
       <div v-else-if="!project.hasProject" class="empty-state">
         <p>No project open.</p>
-        <button class="toolbar-btn" @click="project.newProject()">New Project</button>
+        <AppButton size="compact" @click="project.newProject()">New Project</AppButton>
       </div>
       <div v-else class="empty-state">
         <p>No image — create one to start drawing.</p>
-        <button class="toolbar-btn" @click="showNewImageDialog = true">+ New Image</button>
+        <AppButton size="compact" @click="showNewImageDialog = true">+ New Image</AppButton>
       </div>
     </div>
 
@@ -145,18 +146,6 @@ async function exportPNG() {
   flex-shrink: 0;
 }
 
-.toolbar-btn {
-  padding: 3px var(--rd-space-5);
-  background: var(--rd-color-surface-2);
-  border: var(--rd-border-w) solid var(--rd-color-border);
-  border-radius: var(--rd-radius-1);
-  color: var(--rd-color-text);
-  cursor: pointer;
-  font-size: var(--rd-text-11);
-  white-space: nowrap;
-}
-.toolbar-btn:hover { background: var(--rd-color-surface-3); border-color: var(--rd-color-text-muted); }
-.toolbar-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .image-tabs { display: flex; gap: var(--rd-space-1); overflow-x: auto; }
 

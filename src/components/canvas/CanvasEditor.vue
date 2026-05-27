@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, toRaw } from 'vue'
+import AppButton from '../ui/AppButton.vue'
 import ImageLayer from './ImageLayer.vue'
 import CursorLayer from './CursorLayer.vue'
 import FlashCardPreview from './FlashCardPreview.vue'
@@ -528,8 +529,8 @@ function onGlobalMouseup(e: MouseEvent) { if (e.button === 1 || e.button === 0) 
     <div class="statusbar">
       {{ image?.width }}×{{ image?.height }} px
       &nbsp;|&nbsp; zoom: {{ zoom }}×
-      &nbsp;|&nbsp; <button class="zoom-btn" @click="zoomOut()">−</button>
-      <button class="zoom-btn" @click="zoomIn()">+</button>
+      &nbsp;|&nbsp; <AppButton class="zoom-btn" variant="ghost" size="icon" @click="zoomOut()">−</AppButton>
+      <AppButton class="zoom-btn" variant="ghost" size="icon" @click="zoomIn()">+</AppButton>
     </div>
   </div>
 </template>
@@ -569,18 +570,6 @@ function onGlobalMouseup(e: MouseEvent) { if (e.button === 1 || e.button === 0) 
   flex-shrink: 0;
 }
 
-.zoom-btn {
-  background: none;
-  border: var(--rd-border-w) solid var(--rd-color-border);
-  color: var(--rd-color-text);
-  cursor: pointer;
-  font-size: var(--rd-text-12);
-  line-height: 1;
-  padding: 0 5px;
-  border-radius: var(--rd-radius-1);
-  font-family: inherit;
-}
-.zoom-btn:hover { background: var(--rd-color-surface-2); }
 
 /* The flash-card preview is the only intentionally darker overlay in the
    app (0.75 vs the standard 0.55 modal scrim) so the dimmed page stays

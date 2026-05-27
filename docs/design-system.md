@@ -17,6 +17,15 @@ Rules are imperative. Examples are copy-paste-ready. Anti-patterns are called ou
    left of inline messages. Focus = accent replaces the border. Hover = step up
    the surface ramp.
 5. **The artwork wins.** Chrome stays calm; never compete with the canvas.
+6. **Share appearance through components, not class names.** Canonical visual
+   defaults (background, border, focus ring) belong inside the component that
+   owns the element. Contextual overrides (width, font-size, margin) stay in
+   the parent. If the same style block appears in two or more places, extract it
+   into a shared component in `src/components/ui/`.
+7. **Global role classes live in `ui.css`.** Purely typographic, non-interactive
+   patterns (section labels, captions, inline code) are defined once there as
+   `.rd-*` classes. Use them directly — don't re-type the token combination in a
+   scoped block. See §4.12.
 
 ---
 
@@ -26,10 +35,17 @@ Rules are imperative. Examples are copy-paste-ready. Anti-patterns are called ou
 src/
   styles/
     tokens.css          ← THE SOURCE OF TRUTH. Edit here to change a token.
-  main.ts               ← imports tokens.css. Don't add another global stylesheet.
+    ui.css              ← Global role classes (.rd-section-label, .rd-caption,
+                          .rd-code-inline…). Non-interactive typographic roles
+                          only. See §4.12 for the inclusion criteria.
+  main.ts               ← imports tokens.css and ui.css. No other global CSS.
   App.vue               ← global resets only (box-sizing, number-input cleanup,
                           form-control font inheritance). No design tokens.
-  components/**/*.vue   ← scoped <style> blocks. Use tokens, never literals.
+  components/
+    ui/                 ← shared UI primitives: AppButton, NumericInput, etc.
+                          Canonical visual defaults live here, inside each
+                          component's own <style scoped> block.
+    **/*.vue            ← feature components. Scoped styles, tokens only.
   views/**/*.vue        ← scoped <style> blocks. Use tokens, never literals.
 ```
 
@@ -169,6 +185,11 @@ Document references:
 - Replace the border with `--rd-color-accent` on `:focus` (don't add a second
   outline).
 - Place the modal scrim's overlay at `var(--rd-z-overlay)`.
+- **Put canonical visual defaults inside the component.** When building or
+  extending a shared UI primitive (button, input, badge…), the background,
+  border, radius, and focus rule go in that component's own `<style scoped>`
+  block. The parent supplies only what is genuinely contextual: width, margin,
+  or a size variant via prop or class.
 
 ### 🚫 Never
 
@@ -181,7 +202,15 @@ Document references:
 - Use `--rd-color-text-strong` (white) for body text. It's for dialog titles.
 - Use icon color to convey meaning. Color = state (muted at rest, text on hover,
   accent when active, danger on a danger hover). For meaning, use a `<Badge>`-like element.
-- Add new global CSS. All component CSS is scoped (`<style scoped>`).
+- Add a new global stylesheet. The only intentional global CSS files are
+  `tokens.css` (token values) and `ui.css` (role classes). All other styles
+  live in `<style scoped>` blocks inside their component.
+- Add a `.rd-*` class to `ui.css` that carries interactive state (`:hover`,
+  `:focus`, `cursor`) or layout side effects (padding, margin, flex, grid).
+  Those belong in a component or a scoped block, not in a global class.
+- Duplicate canonical styles across parent views or components. If the same
+  visual block appears in two places, extract it into a shared component under
+  `src/components/ui/` instead of copy-pasting the CSS.
 - Hand-roll a new modal-overlay color. The only intentional darker scrim is the
   flash-card preview (0.75) — that's a one-off documented inline in
   `CanvasEditor.vue`.
@@ -265,19 +294,21 @@ For numeric inputs that should support scrub-to-adjust, use the existing
 
 ### 4.3 Section label (eyebrow)
 
-The most-used pattern in the app. Use it above any panel section.
+The most-used typographic role in the app. Use it above any panel section.
+The class comes from `ui.css` — no import required, no scoped CSS needed.
 
-```vue
-<div class="section-label">Tools</div>
+```html
+<div class="rd-section-label">Tools</div>
+```
+
+If the label needs panel padding (standalone row, not inside a flex header),
+add a single-property scoped class for that spacing concern:
+
+```html
+<div class="rd-section-label section-label">Tools</div>
 
 <style scoped>
-.section-label {
-  font-size: var(--rd-text-10);
-  text-transform: uppercase;
-  letter-spacing: var(--rd-tracking-wide);
-  color: var(--rd-color-text-muted);
-  padding: var(--rd-space-2) var(--rd-space-5) var(--rd-space-1);
-}
+.section-label { padding: var(--rd-space-2) var(--rd-space-5) var(--rd-space-1); }
 </style>
 ```
 
@@ -464,17 +495,93 @@ The most-used pattern in the app. Use it above any panel section.
 }
 ```
 
+### 4.11 Shared UI primitives — when and how to extract
+
+**Rule of two:** when the same visual block appears in two or more
+views or components, extract it into `src/components/ui/` rather than
+copy-pasting the CSS.
+
+A shared UI primitive owns its **canonical defaults** in its own
+`<style scoped>` block: background, border, border-radius, focus ring,
+hover state, disabled state. The parent only supplies what is genuinely
+contextual — width, margin, or a size/variant via prop or class.
+
+**Declaring variants** — prefer a `variant` prop over a modifier class
+when the variants are exhaustive and known up-front:
+
+```vue
+<!-- AppButton.vue -->
+<script setup lang="ts">
+defineProps<{ variant?: 'default' | 'primary' | 'danger' }>()
+</script>
+
+<template>
+  <button class="btn" :class="variant ?? 'default'"><slot /></button>
+</template>
+```
+
+A parent-supplied class (like `class="full-width"`) is fine for
+**layout-only** overrides that have nothing to do with the component's
+own identity.
+
+**Current shared primitives in `src/components/ui/`:**
+
+| Component | Owns |
+|---|---|
+| `AppButton.vue` | Button variants (default, primary, danger, ghost, accent, muted) + sizes |
+| `AppSelect.vue` | Styled native `<select>` with accent focus and disabled state |
+| `NumericInput.vue` | Scrub-to-adjust interaction + canonical mono numeric input look |
+| `CheckerSwatch.vue` | Transparency checkerboard + RGBA colour overlay |
+| `ConfirmDialog.vue` | Standard confirm / cancel modal |
+
+### 4.12 Global role classes (`ui.css`) — the middle tier
+
+The design system has three layers:
+
+| Layer | File | What lives there |
+| --- | --- | --- |
+| Token values | `tokens.css` | Raw `--rd-*` custom properties |
+| Role classes | `ui.css` | Named, non-interactive typographic compositions |
+| Component primitives | `src/components/ui/` | Interactive elements with state, slots, or behavior |
+
+**`ui.css` inclusion criteria** — a class belongs there when it satisfies
+*all four* of these:
+
+1. **Non-interactive** — no `:hover`, `:focus`, `cursor`, or event handling
+2. **Stateless** — no JavaScript, no conditional rendering
+3. **Token-only** — every value uses a `--rd-*` token (or a unitless/relative
+   multiplier like `0.9em` when a token doesn't apply)
+4. **Named design role** — the class represents a stable, intentional concept
+   in the design language, not a one-off style
+
+**Current classes:**
+
+| Class | Role | Use for |
+| --- | --- | --- |
+| `.rd-section-label` | Eyebrow label | Panel/group headings (text-10, uppercase, wide tracking, muted) |
+| `.rd-caption` | Secondary text | Descriptions, help copy, sub-labels (text-11, muted, relaxed leading) |
+| `.rd-code-inline` | Inline code | Mono-spaced fragments within prose or a label |
+
+**What does NOT belong in `ui.css`:**
+spacing (padding, margin, flex/grid layout), hover or focus states, cursor,
+width/height, z-index. Those go in a component's `<style scoped>` or as a
+contextual override class at the callsite.
+
+**Adding a new role class:** follow the four criteria above, add the class to
+`ui.css` with a comment stating its role, and document it in this table.
+
 ---
 
 ## 5 · Decision tree: "I need to build …"
 
-- **A clickable thing that triggers an action** → §4.1 Button. Default for
-  "cancel-or-secondary", `.primary` for the recommended action, `.danger` for
-  destructive primary.
+- **A clickable thing that triggers an action** → `<AppButton>` from
+  `src/components/ui/`. Pass `variant="primary"` for the recommended action,
+  `variant="danger"` for destructive. See §4.1 for the recipe when building or
+  modifying `AppButton` itself.
 - **A clickable thing in a sidebar that toggles an active state** → §4.4 Active
   row.
 - **A tab strip** → §4.5 Tab.
-- **A label above a panel section** → §4.3 Section label.
+- **A label above a panel section** → `class="rd-section-label"` from `ui.css`. See §4.3 and §4.12.
 - **A modal** → §4.6 Dialog. Use the existing `ConfirmDialog.vue` if it's a
   simple confirm.
 - **A status string inside a panel** → §4.7 Inline message.
@@ -484,8 +591,10 @@ The most-used pattern in the app. Use it above any panel section.
 - **A keyboard shortcut hint** → §4.9 Kbd.
 - **A pixel cell, swatch, or color-preview chip** → use the checker recipe in
   §4.10 + set a solid color on top.
-- **A numeric input** → use the existing `<NumericInput v-model />` component.
-  It hides the native spinner and adds click-and-drag scrubbing.
+- **A numeric input** → `<NumericInput v-model />`. Canonical visual defaults
+  (surface fill, border, mono font, focus ring) are baked into the component.
+  The parent supplies only `v-model`, `:min`, `:max`, and optionally a width or
+  size class.
 - **A new accent color** → DON'T. There is one accent.
 - **A second-tier "info" color** → use `--rd-color-accent-soft` +
   `--rd-color-accent-soft-border`.

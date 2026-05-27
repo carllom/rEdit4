@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useSheetStore } from '../../stores/sheetStore'
 import { useProjectStore } from '../../stores/projectStore'
+import CheckerSwatch from '../ui/CheckerSwatch.vue'
 import type { SheetTool } from '../../stores/sheetStore'
 
 const sheetStore = useSheetStore()
@@ -18,11 +19,6 @@ const matteColor = computed(() =>
   projectStore.project?.sheets.find(s => s.id === sheetStore.activeSheetId)?.matteColor ?? null
 )
 
-const swatchStyle = computed(() =>
-  matteColor.value
-    ? { background: `rgb(${matteColor.value.r}, ${matteColor.value.g}, ${matteColor.value.b})` }
-    : {}
-)
 </script>
 
 <template>
@@ -34,9 +30,9 @@ const swatchStyle = computed(() =>
       :title="tool.title"
       @click="sheetStore.setActiveTool(tool.id)"
     >{{ tool.label }}</button>
-    <div
-      :class="['matte-swatch', { 'no-matte': !matteColor }]"
-      :style="swatchStyle"
+    <CheckerSwatch
+      class="matte-swatch"
+      :color="matteColor ?? undefined"
       :title="matteColor ? `Matte: rgb(${matteColor.r}, ${matteColor.g}, ${matteColor.b})` : 'Matte: none (alpha)'"
     />
   </div>
@@ -93,14 +89,4 @@ const swatchStyle = computed(() =>
   border-radius: var(--rd-radius-1);
 }
 
-.matte-swatch.no-matte {
-  background-color: var(--rd-color-checker-light);
-  background-image:
-    linear-gradient(45deg, var(--rd-color-checker-dark) 25%, transparent 25%),
-    linear-gradient(-45deg, var(--rd-color-checker-dark) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, var(--rd-color-checker-dark) 75%),
-    linear-gradient(-45deg, transparent 75%, var(--rd-color-checker-dark) 75%);
-  background-size: 6px 6px;
-  background-position: 0 0, 0 3px, 3px -3px, -3px 0;
-}
 </style>

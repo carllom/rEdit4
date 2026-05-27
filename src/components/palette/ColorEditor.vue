@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import type { Color } from '../../domain/model'
 import { colorToCSSHex } from '../../domain/color'
 import NumericInput from '../ui/NumericInput.vue'
+import CheckerSwatch from '../ui/CheckerSwatch.vue'
 
 const props = defineProps<{ color: Color }>()
 const emit = defineEmits<{ change: [] }>()
@@ -31,7 +32,7 @@ function setA(v: number) { props.color.a = clamp(v); emit('change') }
 <template>
   <div class="color-editor">
     <div class="preview-row">
-      <div class="preview" :style="{ background: `rgba(${color.r},${color.g},${color.b},${color.a/255})` }" />
+      <CheckerSwatch class="preview" :color="color" />
       <input class="hex-input" type="text" :value="hex" maxlength="7" spellcheck="false"
         @change="hex = ($event.target as HTMLInputElement).value" />
     </div>
@@ -76,14 +77,6 @@ function setA(v: number) { props.color.a = clamp(v); emit('change') }
   border-radius: var(--rd-radius-2);
   border: var(--rd-border-w) solid var(--rd-color-border);
   flex-shrink: 0;
-  background-image:
-    linear-gradient(45deg, var(--rd-color-checker-light) 25%, transparent 25%),
-    linear-gradient(-45deg, var(--rd-color-checker-light) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, var(--rd-color-checker-light) 75%),
-    linear-gradient(-45deg, transparent 75%, var(--rd-color-checker-light) 75%);
-  background-size: 8px 8px;
-  background-position: 0 0, 0 4px, 4px -4px, -4px 0;
-  background-color: var(--rd-color-checker-dark);
 }
 
 .hex-input {
@@ -113,18 +106,5 @@ function setA(v: number) { props.color.a = clamp(v); emit('change') }
   font-weight: var(--rd-weight-semibold);
 }
 
-.channel-num {
-  width: 46px;
-  background: var(--rd-color-surface-3);
-  border: var(--rd-border-w) solid var(--rd-color-border);
-  border-radius: var(--rd-radius-1);
-  color: var(--rd-color-text);
-  font-size: var(--rd-text-11);
-  padding: 2px 4px;
-  text-align: right;
-  outline: none;
-  font-family: var(--rd-font-mono);
-  font-variant-numeric: tabular-nums;
-}
-.channel-num:focus { border-color: var(--rd-color-accent); }
+.channel-num { width: 46px; }
 </style>

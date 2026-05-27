@@ -1,0 +1,44 @@
+/*
+ * ui.css — Design-language role classes
+ *
+ * Named compositions of --rd-* tokens for purely typographic / visual roles.
+ * These are stable, non-interactive, and carry no layout side effects.
+ *
+ * Rules for inclusion:
+ *   1. Non-interactive (no :hover, :focus, cursor changes belong here)
+ *   2. No state or structure — purely typographic / visual
+ *   3. Uses only --rd-* tokens, never raw values
+ *   4. Represents a named design role appearing in 2+ independent places
+ *
+ * Spacing (padding, margin) is NOT included in these classes — that is a
+ * layout concern and stays in the caller's scoped block.
+ *
+ * See docs/design-system.md §4.12 for the full rationale and usage guide.
+ */
+
+/* ── Eyebrow label — above a panel section or group ─────────────────────── */
+.rd-section-label {
+  font-size: var(--rd-text-10);
+  text-transform: uppercase;
+  letter-spacing: var(--rd-tracking-wide);
+  color: var(--rd-color-text-muted);
+}
+
+/* ── Caption — secondary descriptive text, help copy, sub-labels ─────────── */
+.rd-caption {
+  font-size: var(--rd-text-11);
+  color: var(--rd-color-text-muted);
+  line-height: var(--rd-leading-relaxed);
+}
+
+/* ── Code inline — mono-spaced fragment within prose or a label ──────────── */
+/*    font-size is intentionally relative (0.9em) so code sits slightly       */
+/*    smaller than its surrounding text regardless of that text's size.       */
+.rd-code-inline {
+  font-family: var(--rd-font-mono);
+  font-size: 0.9em;
+  background: var(--rd-color-surface-3);
+  border: var(--rd-border-w) solid var(--rd-color-border);
+  border-radius: var(--rd-radius-1);
+  padding: 0 4px;
+}

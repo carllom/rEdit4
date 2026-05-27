@@ -96,11 +96,24 @@ function onChange(e: Event) {
 
 <style scoped>
 input[type='number'] {
+  /* Interaction */
   -moz-appearance: textfield;
   appearance: textfield;
   cursor: ew-resize;
   user-select: none;
+  /* Canonical look — parents supply only contextual sizing (width / flex) */
+  background: var(--rd-color-surface-3);
+  border: var(--rd-border-w) solid var(--rd-color-border);
+  border-radius: var(--rd-radius-1);
+  color: var(--rd-color-text);
+  font-size: var(--rd-text-11);
+  font-family: var(--rd-font-mono);
+  font-variant-numeric: tabular-nums;
+  padding: 2px 4px;
+  text-align: right;
+  outline: none;
 }
+input[type='number']:focus { border-color: var(--rd-color-accent); }
 
 input[type='number']::-webkit-inner-spin-button,
 input[type='number']::-webkit-outer-spin-button {

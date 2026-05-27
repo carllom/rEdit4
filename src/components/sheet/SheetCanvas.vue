@@ -11,6 +11,7 @@ const initializedSheets = new Set<string>()
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useSheetStore } from '../../stores/sheetStore'
 import { useProjectStore } from '../../stores/projectStore'
+import AppButton from '../ui/AppButton.vue'
 import {
   ZOOM_LEVELS, fitToViewport, clampPanOffset, centerPanOffset, pixelToScreen,
 } from '../../renderer/viewport'
@@ -292,8 +293,8 @@ onUnmounted(() => {
         {{ imgW }}×{{ imgH }} px
         &nbsp;|&nbsp; zoom: {{ zoom }}×
         &nbsp;|&nbsp;
-        <button class="zoom-btn" @click="zoomOut()">−</button>
-        <button class="zoom-btn" @click="zoomIn()">+</button>
+        <AppButton class="zoom-btn" variant="ghost" size="icon" @click="zoomOut()">−</AppButton>
+        <AppButton class="zoom-btn" variant="ghost" size="icon" @click="zoomIn()">+</AppButton>
       </template>
       <template v-else-if="activeSheet">
         Loading…
@@ -356,16 +357,4 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-.zoom-btn {
-  background: none;
-  border: var(--rd-border-w) solid var(--rd-color-border);
-  color: var(--rd-color-text);
-  cursor: pointer;
-  font-size: var(--rd-text-12);
-  line-height: 1;
-  padding: 0 var(--rd-space-3);
-  border-radius: var(--rd-radius-1);
-  font-family: inherit;
-}
-.zoom-btn:hover { background: var(--rd-color-surface-2); }
 </style>

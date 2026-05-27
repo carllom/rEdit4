@@ -70,7 +70,7 @@ function toolTooltip(tool: ToolDef): string {
 
 <template>
   <div class="tool-selector">
-    <div class="section-label">Tools</div>
+    <div class="rd-section-label section-label">Tools</div>
     <div v-for="tool in tools" :key="tool.id" class="tool-group">
       <button
         :class="['tool-btn', { active: paint.activeTool === tool.id }]"
@@ -103,13 +103,7 @@ function toolTooltip(tool: ToolDef): string {
   padding: var(--rd-space-3) 0;
 }
 
-.section-label {
-  font-size: var(--rd-text-10);
-  text-transform: uppercase;
-  letter-spacing: var(--rd-tracking-wide);
-  color: var(--rd-color-text-muted);
-  padding: var(--rd-space-2) var(--rd-space-5) var(--rd-space-1);
-}
+.section-label { padding: var(--rd-space-2) var(--rd-space-5) var(--rd-space-1); }
 
 .tool-group {
   display: flex;

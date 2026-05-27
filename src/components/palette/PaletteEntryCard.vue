@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { Color, Palette, PaletteKind } from '../../domain/model'
-import { colorToCSSRGBA } from '../../domain/color'
+import type { Palette, PaletteKind } from '../../domain/model'
+import CheckerSwatch from '../ui/CheckerSwatch.vue'
 
 const props = defineProps<{
   palette: Palette
@@ -10,9 +10,6 @@ const props = defineProps<{
 
 const colorCount = computed(() => props.palette.colors.length - 1)
 
-function swatchStyle(color: Color) {
-  return { background: colorToCSSRGBA(color) }
-}
 
 function truncate(s: string, max = 100) {
   return s.length > max ? s.slice(0, max) + '…' : s
@@ -28,12 +25,11 @@ function truncate(s: string, max = 100) {
   </div>
   <div v-if="palette.description" class="entry-desc">{{ truncate(palette.description) }}</div>
   <div class="swatch-grid">
-    <div
+    <CheckerSwatch
       v-for="(color, i) in palette.colors"
       :key="i"
       class="swatch-cell"
-      :class="{ 'swatch-transparent': i === 0 }"
-      :style="i === 0 ? {} : swatchStyle(color)"
+      :color="color"
     />
   </div>
 </template>
@@ -99,14 +95,4 @@ function truncate(s: string, max = 100) {
   height: 9px;
 }
 
-.swatch-transparent {
-  background-image:
-    linear-gradient(45deg, var(--rd-color-checker-light) 25%, transparent 25%),
-    linear-gradient(-45deg, var(--rd-color-checker-light) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, var(--rd-color-checker-light) 75%),
-    linear-gradient(-45deg, transparent 75%, var(--rd-color-checker-light) 75%);
-  background-size: 6px 6px;
-  background-position: 0 0, 0 3px, 3px -3px, -3px 0px;
-  background-color: var(--rd-color-checker-dark);
-}
 </style>

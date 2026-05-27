@@ -2,6 +2,7 @@
 import { ref, computed, nextTick } from 'vue'
 import { useSheetStore } from '../../stores/sheetStore'
 import { useProjectStore } from '../../stores/projectStore'
+import AppSelect from '../ui/AppSelect.vue'
 
 const sheetStore = useSheetStore()
 const projectStore = useProjectStore()
@@ -13,9 +14,10 @@ const isRenaming = ref(false)
 const renameValue = ref('')
 const renameInput = ref<HTMLInputElement | null>(null)
 
-function selectSheet(id: string) {
-  sheetStore.activeSheetId = id
-}
+const activeSheetId = computed({
+  get: () => sheetStore.activeSheetId ?? '',
+  set: (v: string) => { if (v) sheetStore.activeSheetId = v },
+})
 
 async function startRename() {
   if (!activeSheet.value) return
@@ -68,15 +70,14 @@ function onNewSheet() {
 <template>
   <div class="sheet-selector">
     <template v-if="!isRenaming">
-      <select
+      <AppSelect
         class="sheet-select"
-        :value="sheetStore.activeSheetId ?? ''"
+        v-model="activeSheetId"
         :disabled="sheets.length === 0"
-        @change="(e) => selectSheet((e.target as HTMLSelectElement).value)"
       >
         <option v-if="sheets.length === 0" value="">No sheets</option>
         <option v-for="s in sheets" :key="s.id" :value="s.id">{{ s.name }}</option>
-      </select>
+      </AppSelect>
       <button
         class="icon-btn"
         :disabled="!activeSheet"
@@ -108,15 +109,9 @@ function onNewSheet() {
   height: var(--rd-hit-md);
   padding: 0 var(--rd-space-4);
   background: var(--rd-color-surface-2);
-  border: var(--rd-border-w) solid var(--rd-color-border);
-  border-radius: var(--rd-radius-1);
-  color: var(--rd-color-text);
   font-size: var(--rd-text-12);
-  font-family: inherit;
-  cursor: pointer;
   min-width: 140px;
 }
-.sheet-select:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .rename-input {
   height: var(--rd-hit-md);

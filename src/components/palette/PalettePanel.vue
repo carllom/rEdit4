@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { useProjectStore } from '../../stores/projectStore'
 import { useEditorStore } from '../../stores/editorStore'
 import { usePaintStore } from '../../stores/paintStore'
-import { colorToCSSRGBA, makeColor } from '../../domain/color'
+import { makeColor } from '../../domain/color'
 import {
   clonePalette,
   findPaletteUsage,
@@ -13,6 +13,11 @@ import {
   reassignPalette,
 } from '../../domain/paletteOps'
 import ColorEditor from './ColorEditor.vue'
+import AppButton from '../ui/AppButton.vue'
+import AppDialog from '../ui/AppDialog.vue'
+import NumericInput from '../ui/NumericInput.vue'
+import AppSelect from '../ui/AppSelect.vue'
+import CheckerSwatch from '../ui/CheckerSwatch.vue'
 
 const router = useRouter()
 const project = useProjectStore()
@@ -135,6 +140,11 @@ const canCompress = computed(() => {
   return nonZeroUsed.length <= targetSlots
 })
 
+const selectedPaletteId = computed({
+  get: () => editor.activePaletteId ?? '',
+  set: (v: string) => onPalettePickerChange(v),
+})
+
 function onPalettePickerChange(newId: string) {
   if (newId === editor.activePaletteId) return
   const toPalette = project.getPalette(newId)
@@ -189,17 +199,13 @@ const outOfRangePreview = computed(() => {
 
 <template>
   <div class="palette-panel">
-    <div class="section-label">Palette</div>
+    <div class="rd-section-label section-label">Palette</div>
 
     <!-- Palette picker (shown when project has more than one palette) -->
     <div v-if="allPalettes.length > 1" class="picker-row">
-      <select
-        class="palette-picker"
-        :value="editor.activePaletteId ?? ''"
-        @change="onPalettePickerChange(($event.target as HTMLSelectElement).value)"
-      >
+      <AppSelect class="palette-picker" v-model="selectedPaletteId">
         <option v-for="p in allPalettes" :key="p.id" :value="p.id">{{ p.name }}</option>
-      </select>
+      </AppSelect>
     </div>
     <div v-else-if="palette" class="palette-name">{{ palette.name }}</div>
 
@@ -213,10 +219,11 @@ const outOfRangePreview = computed(() => {
         v-for="{ color, index } in displayColors"
         :key="color.id"
         :class="['swatch', { active: paint.activeColorIndex === index }]"
-        :style="{ '--c': colorToCSSRGBA(color) }"
         :title="`[${index}] ${color.name}`"
         @click="paint.setColorIndex(index)"
-      />
+      >
+        <CheckerSwatch class="swatch-fill" :color="color" />
+      </button>
     </div>
 
     <button v-if="palette" class="add-btn" @click="addColor">+ Add color</button>
@@ -239,51 +246,50 @@ const outOfRangePreview = computed(() => {
     <div v-if="!palette" class="no-palette">No palette</div>
 
     <!-- Shared-palette edit guard dialog -->
-    <Teleport to="body">
-      <div v-if="showEditGuardDialog" class="overlay" @click.self="showEditGuardDialog = false">
-        <div class="dialog" role="dialog" aria-modal="true">
-          <div class="dialog-title">Shared palette</div>
-          <div class="dialog-message">
-            This palette is used by {{ sharedWithImages.length }} images. Editing a color will affect all of them.
-          </div>
-          <div class="dialog-actions col">
-            <button class="btn primary" @click="cloneAndDecouple">Clone &amp; decouple</button>
-            <button class="btn" @click="proceedEditShared">Edit shared palette</button>
-            <button class="btn muted" @click="showEditGuardDialog = false">Cancel</button>
-          </div>
-        </div>
-      </div>
-    </Teleport>
+    <AppDialog
+      :open="showEditGuardDialog"
+      title="Shared palette"
+      stack
+      @close="showEditGuardDialog = false"
+    >
+      <p class="dialog-body">
+        This palette is used by {{ sharedWithImages.length }} images. Editing a color will affect all of them.
+      </p>
+      <template #actions>
+        <AppButton class="col-btn" variant="primary" @click="cloneAndDecouple">Clone &amp; decouple</AppButton>
+        <AppButton class="col-btn" @click="proceedEditShared">Edit shared palette</AppButton>
+        <AppButton class="col-btn" variant="muted" @click="showEditGuardDialog = false">Cancel</AppButton>
+      </template>
+    </AppDialog>
 
     <!-- Reassignment dialog -->
-    <Teleport to="body">
-      <div v-if="showReassignDialog" class="overlay" @click.self="closeReassignDialog">
-        <div class="dialog" role="dialog" aria-modal="true">
-          <div class="dialog-title">Palette size mismatch</div>
-          <div class="dialog-message">
-            The target palette is smaller. Pixel indices
-            <strong>{{ outOfRangePreview }}</strong>
-            are in use but out of range. How should they be handled?
-          </div>
-          <div class="dialog-actions col">
-            <button class="btn" @click="executeReassign('remove')">Remove unmapped pixels</button>
-            <div class="remap-row">
-              <button class="btn remap-btn" @click="executeReassign('remap-to-n')">Remap to index</button>
-              <input
-                class="remap-n-input"
-                type="number"
-                :min="1"
-                :max="(pendingNewPalette?.colors.length ?? 2) - 1"
-                :value="remapToNValue"
-                @input="remapToNValue = Number(($event.target as HTMLInputElement).value)"
-              />
-            </div>
-            <button v-if="canCompress" class="btn" @click="executeReassign('compress')">Compress indices</button>
-            <button class="btn muted" @click="closeReassignDialog">Cancel</button>
-          </div>
+    <AppDialog
+      :open="showReassignDialog"
+      title="Palette size mismatch"
+      stack
+      width="300px"
+      @close="closeReassignDialog"
+    >
+      <p class="dialog-body">
+        The target palette is smaller. Pixel indices
+        <strong>{{ outOfRangePreview }}</strong>
+        are in use but out of range. How should they be handled?
+      </p>
+      <template #actions>
+        <AppButton class="col-btn" @click="executeReassign('remove')">Remove unmapped pixels</AppButton>
+        <div class="remap-row">
+          <AppButton class="col-btn remap-btn" @click="executeReassign('remap-to-n')">Remap to index</AppButton>
+          <NumericInput
+            class="remap-n-input"
+            v-model="remapToNValue"
+            :min="1"
+            :max="(pendingNewPalette?.colors.length ?? 2) - 1"
+          />
         </div>
-      </div>
-    </Teleport>
+        <AppButton v-if="canCompress" class="col-btn" @click="executeReassign('compress')">Compress indices</AppButton>
+        <AppButton class="col-btn" variant="muted" @click="closeReassignDialog">Cancel</AppButton>
+      </template>
+    </AppDialog>
   </div>
 </template>
 
@@ -295,10 +301,6 @@ const outOfRangePreview = computed(() => {
 }
 
 .section-label {
-  font-size: var(--rd-text-10);
-  text-transform: uppercase;
-  letter-spacing: var(--rd-tracking-wide);
-  color: var(--rd-color-text-muted);
   padding: var(--rd-space-2) var(--rd-space-5) var(--rd-space-1);
 }
 
@@ -312,18 +314,7 @@ const outOfRangePreview = computed(() => {
   padding: var(--rd-space-1) var(--rd-space-4) var(--rd-space-2);
 }
 
-.palette-picker {
-  width: 100%;
-  background: var(--rd-color-surface-3);
-  border: var(--rd-border-w) solid var(--rd-color-border);
-  border-radius: var(--rd-radius-1);
-  color: var(--rd-color-text);
-  font-size: var(--rd-text-11);
-  padding: 3px 6px;
-  outline: none;
-  cursor: pointer;
-}
-.palette-picker:focus { border-color: var(--rd-color-accent); }
+.palette-picker { width: 100%; }
 
 .shared-badge {
   font-size: var(--rd-text-10);
@@ -345,23 +336,10 @@ const outOfRangePreview = computed(() => {
   border-radius: 1px;
   cursor: pointer;
   padding: 0;
-  background-image:
-    linear-gradient(45deg, var(--rd-color-checker-light) 25%, transparent 25%),
-    linear-gradient(-45deg, var(--rd-color-checker-light) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, var(--rd-color-checker-light) 75%),
-    linear-gradient(-45deg, transparent 75%, var(--rd-color-checker-light) 75%);
-  background-size: 6px 6px;
-  background-position: 0 0, 0 3px, 3px -3px, -3px 0;
-  background-color: var(--c, var(--rd-color-checker-dark));
+  overflow: hidden;
 }
 
-.swatch::after {
-  content: '';
-  display: block;
-  width: 100%;
-  height: 100%;
-  background: var(--c, transparent);
-}
+.swatch-fill { display: block; width: 100%; height: 100%; }
 
 .swatch:hover {
   outline: var(--rd-border-w) solid var(--rd-color-accent-hover);
@@ -416,69 +394,15 @@ const outOfRangePreview = computed(() => {
   font-size: var(--rd-text-11);
 }
 
-/* ---- Dialogs ---- */
+/* ---- Dialog body content ---- */
 
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: var(--rd-color-overlay);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: var(--rd-z-overlay);
-}
-
-.dialog {
-  background: var(--rd-color-surface-2);
-  border: var(--rd-border-w) solid var(--rd-color-border);
-  border-radius: var(--rd-radius-3);
-  box-shadow: var(--rd-shadow-dialog);
-  padding: var(--rd-space-8) var(--rd-space-9);
-  width: 300px;
-  display: flex;
-  flex-direction: column;
-  gap: var(--rd-space-6);
-}
-
-.dialog-title {
-  font-size: var(--rd-text-14);
-  font-weight: var(--rd-weight-semibold);
-  color: var(--rd-color-text-strong);
-}
-
-.dialog-message {
+.dialog-body {
   font-size: var(--rd-text-12);
   color: var(--rd-color-text-muted);
   line-height: var(--rd-leading-relaxed);
 }
 
-.dialog-actions.col {
-  display: flex;
-  flex-direction: column;
-  gap: var(--rd-space-3);
-  margin-top: var(--rd-space-2);
-}
-
-.btn {
-  padding: 5px 12px;
-  border-radius: var(--rd-radius-1);
-  border: var(--rd-border-w) solid var(--rd-color-border);
-  background: var(--rd-color-surface-3);
-  color: var(--rd-color-text);
-  cursor: pointer;
-  font-size: var(--rd-text-12);
-  text-align: left;
-}
-.btn:hover { background: var(--rd-color-surface-2); border-color: var(--rd-color-text-muted); }
-.btn.primary {
-  background: var(--rd-color-accent);
-  border-color: var(--rd-color-accent);
-  color: var(--rd-color-accent-fg);
-  font-weight: var(--rd-weight-semibold);
-}
-.btn.primary:hover { background: var(--rd-color-accent-hover); border-color: var(--rd-color-accent-hover); }
-.btn.muted { color: var(--rd-color-text-muted); background: none; border-color: transparent; }
-.btn.muted:hover { color: var(--rd-color-text); background: var(--rd-color-surface-3); border-color: transparent; }
+.col-btn { width: 100%; text-align: left; }
 
 .remap-row {
   display: flex;
@@ -487,19 +411,5 @@ const outOfRangePreview = computed(() => {
 }
 
 .remap-btn { flex: 1; }
-
-.remap-n-input {
-  width: 52px;
-  background: var(--rd-color-surface-3);
-  border: var(--rd-border-w) solid var(--rd-color-border);
-  border-radius: var(--rd-radius-1);
-  color: var(--rd-color-text);
-  font-size: var(--rd-text-12);
-  padding: 4px 6px;
-  outline: none;
-  text-align: right;
-  font-family: var(--rd-font-mono);
-  font-variant-numeric: tabular-nums;
-}
-.remap-n-input:focus { border-color: var(--rd-color-accent); }
+.remap-n-input { width: 52px; }
 </style>

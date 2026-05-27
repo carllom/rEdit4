@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import SheetSelector from '../components/sheet/SheetSelector.vue'
 import SheetToolStrip from '../components/sheet/SheetToolStrip.vue'
 import SheetCanvas from '../components/sheet/SheetCanvas.vue'
+import AppButton from '../components/ui/AppButton.vue'
 import NumericInput from '../components/ui/NumericInput.vue'
 import { useSheetStore } from '../stores/sheetStore'
 
@@ -36,16 +37,17 @@ const rectH = computed({
       <SheetCanvas />
       <div class="sheet-right-panel">
         <div class="panel-section">
-          <button
-            class="action-btn accent"
+          <AppButton
+            class="full-width"
+            variant="accent"
             :disabled="!sheetStore.inProgressRect"
             @click="sheetStore.acceptInProgressRect()"
-          >Accept</button>
-          <button
-            class="action-btn"
+          >Accept</AppButton>
+          <AppButton
+            class="full-width"
             :disabled="!sheetStore.inProgressRect"
             @click="sheetStore.setInProgressRect(null)"
-          >Cancel</button>
+          >Cancel</AppButton>
         </div>
         <div v-if="sheetStore.inProgressRect" class="panel-section">
           <div class="rect-field">
@@ -111,30 +113,7 @@ const rectH = computed({
   border-bottom: var(--rd-border-w) solid var(--rd-color-border);
 }
 
-.action-btn {
-  width: 100%;
-  padding: var(--rd-space-2) var(--rd-space-5);
-  background: var(--rd-color-surface-2);
-  border: var(--rd-border-w) solid var(--rd-color-border);
-  border-radius: var(--rd-radius-1);
-  color: var(--rd-color-text);
-  cursor: pointer;
-  font-size: var(--rd-text-12);
-  font-family: inherit;
-  text-align: center;
-}
-.action-btn:hover:not(:disabled) { background: var(--rd-color-surface-3); border-color: var(--rd-color-text-muted); }
-.action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-.action-btn.accent {
-  background: var(--rd-color-accent-soft);
-  border-color: var(--rd-color-accent-soft-border);
-  color: var(--rd-color-accent);
-}
-.action-btn.accent:hover:not(:disabled) {
-  background: var(--rd-color-accent);
-  color: var(--rd-color-accent-fg);
-}
+.full-width { width: 100%; }
 
 .rect-field {
   display: flex;
@@ -150,18 +129,5 @@ const rectH = computed({
   font-weight: var(--rd-weight-semibold);
 }
 
-.field-num {
-  flex: 1;
-  background: var(--rd-color-surface-3);
-  border: var(--rd-border-w) solid var(--rd-color-border);
-  border-radius: var(--rd-radius-1);
-  color: var(--rd-color-text);
-  font-size: var(--rd-text-11);
-  padding: 2px 4px;
-  text-align: right;
-  outline: none;
-  font-family: var(--rd-font-mono);
-  font-variant-numeric: tabular-nums;
-}
-.field-num:focus { border-color: var(--rd-color-accent); }
+.field-num { flex: 1; }
 </style>

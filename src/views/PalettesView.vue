@@ -6,6 +6,7 @@ import { makePalette } from '../domain/color'
 import { clonePalette, findPaletteUsage } from '../domain/paletteOps'
 import type { PaletteKind } from '../domain/model'
 import PaletteEntryCard from '../components/palette/PaletteEntryCard.vue'
+import AppButton from '../components/ui/AppButton.vue'
 
 interface PaletteEntry {
   id: string
@@ -216,14 +217,14 @@ function deleteUserTemplate() {
 
             <div class="editor-section-title">Actions</div>
             <div class="editor-actions">
-              <button class="btn" @click="cloneCurrent">Clone</button>
-              <button class="btn btn--danger" @click="deleteCurrent">Delete</button>
+              <AppButton @click="cloneCurrent">Clone</AppButton>
+              <AppButton variant="danger" @click="deleteCurrent">Delete</AppButton>
             </div>
             <div v-if="deleteError" class="editor-msg editor-msg--error">{{ deleteError }}</div>
 
             <div class="editor-section-title">Template</div>
             <div class="editor-actions">
-              <button class="btn" @click="promote">Promote to template</button>
+              <AppButton @click="promote">Promote to template</AppButton>
             </div>
             <div v-if="promoteError" class="editor-msg editor-msg--error">{{ promoteError }}</div>
             <div v-if="promoteSuccess" class="editor-msg editor-msg--success">Saved as template "{{ selectedEntry.name }}"</div>
@@ -236,12 +237,12 @@ function deleteUserTemplate() {
             <div v-if="selectedEntry.description" class="editor-desc-static">{{ selectedEntry.description }}</div>
             <div class="editor-section-title">Actions</div>
             <div class="editor-actions">
-              <button class="btn" @click="importTemplate">Import into project</button>
-              <button
+              <AppButton @click="importTemplate">Import into project</AppButton>
+              <AppButton
                 v-if="selectedEntry.kind === 'user-template'"
-                class="btn btn--danger"
+                variant="danger"
                 @click="deleteUserTemplate"
-              >Delete template</button>
+              >Delete template</AppButton>
             </div>
           </div>
         </template>
@@ -451,20 +452,6 @@ function deleteUserTemplate() {
   flex-wrap: wrap;
 }
 
-.btn {
-  padding: 5px 12px;
-  font-size: var(--rd-text-12);
-  font-family: inherit;
-  background: var(--rd-color-surface-3);
-  border: var(--rd-border-w) solid var(--rd-color-border);
-  border-radius: var(--rd-radius-1);
-  color: var(--rd-color-text);
-  cursor: pointer;
-}
-.btn:hover { background: var(--rd-color-surface-2); border-color: var(--rd-color-text-muted); }
-
-.btn--danger { color: var(--rd-color-danger); }
-.btn--danger:hover { border-color: var(--rd-color-danger); }
 
 .editor-msg {
   font-size: var(--rd-text-11);

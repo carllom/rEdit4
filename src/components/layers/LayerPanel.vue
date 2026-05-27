@@ -148,7 +148,7 @@ onUnmounted(() => {
 <template>
   <div class="layer-panel">
     <div class="panel-header">
-      <span class="section-label">Layers</span>
+      <span class="rd-section-label">Layers</span>
       <button class="icon-btn" title="Add layer" @click="addLayer">+</button>
     </div>
 
@@ -246,12 +246,6 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-.section-label {
-  font-size: var(--rd-text-10);
-  text-transform: uppercase;
-  letter-spacing: var(--rd-tracking-wide);
-  color: var(--rd-color-text-muted);
-}
 
 .layer-list { flex: 1; overflow-y: auto; }
 

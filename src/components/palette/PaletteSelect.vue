@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
-import type { Color, Palette } from '../../domain/model'
-import { colorToCSSRGBA } from '../../domain/color'
+import type { Palette } from '../../domain/model'
 import PaletteEntryCard from './PaletteEntryCard.vue'
+import CheckerSwatch from '../ui/CheckerSwatch.vue'
 
 const TRIGGER_SWATCH_CAP = 32
 
@@ -31,9 +31,6 @@ const triggerSwatches = computed(() =>
     : []
 )
 
-function swatchStyle(color: Color) {
-  return { background: colorToCSSRGBA(color) }
-}
 
 function open() {
   const idx = props.palettes.findIndex(p => p.id === props.modelValue)
@@ -121,12 +118,11 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
     >
       <span class="ps-trigger-name">{{ selectedPalette?.name ?? 'Select palette…' }}</span>
       <span class="ps-trigger-swatches">
-        <span
+        <CheckerSwatch
           v-for="(color, i) in triggerSwatches"
           :key="i"
           class="ps-swatch"
-          :class="{ 'ps-swatch--transparent': i === 0 }"
-          :style="i === 0 ? {} : swatchStyle(color)"
+          :color="color"
         />
       </span>
       <span class="ps-chevron" aria-hidden="true">▾</span>
@@ -201,16 +197,6 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
   flex-shrink: 0;
 }
 
-.ps-swatch--transparent {
-  background-image:
-    linear-gradient(45deg, var(--rd-color-checker-light) 25%, transparent 25%),
-    linear-gradient(-45deg, var(--rd-color-checker-light) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, var(--rd-color-checker-light) 75%),
-    linear-gradient(-45deg, transparent 75%, var(--rd-color-checker-light) 75%);
-  background-size: 6px 6px;
-  background-position: 0 0, 0 3px, 3px -3px, -3px 0px;
-  background-color: var(--rd-color-checker-dark);
-}
 
 .ps-chevron {
   font-size: var(--rd-text-10);
