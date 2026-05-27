@@ -1,6 +1,9 @@
 import type { Ref } from 'vue'
 import { useSheetStore } from '../stores/sheetStore'
+import { useProjectStore } from '../stores/projectStore'
 import { screenToPixel } from '../renderer/viewport'
+import { growRectangle, shrinkRectangle } from '../domain/sheetOps'
+import type { PixelBuffer } from '../domain/sheetOps'
 import type { Point } from '../domain/model'
 
 export function useRectInteraction(
@@ -8,11 +11,16 @@ export function useRectInteraction(
   zoom: Ref<number>,
   panOffset: Ref<Point>,
   isPanMode: Ref<boolean>,
+  getPixels: () => PixelBuffer | null,
+  imgW: Ref<number>,
+  imgH: Ref<number>,
 ) {
   const sheetStore = useSheetStore()
+  const projectStore = useProjectStore()
 
   let isDragging = false
   let dragStart: Point | null = null
+  let dragEnd: Point | null = null
 
   function pixelAt(e: MouseEvent): Point {
     const el = canvas.value!
@@ -29,22 +37,65 @@ export function useRectInteraction(
     }
   }
 
+  function inImage(p: Point): boolean {
+    return p.x >= 0 && p.y >= 0 && p.x < imgW.value && p.y < imgH.value
+  }
+
+  function getMatteColor() {
+    const id = sheetStore.activeSheetId
+    return projectStore.project?.sheets.find(s => s.id === id)?.matteColor ?? null
+  }
+
+  function sheetBounds() {
+    return { x: 0, y: 0, w: imgW.value, h: imgH.value }
+  }
+
   function onMousedown(e: MouseEvent) {
-    if (e.button !== 0 || isPanMode.value || sheetStore.activeTool !== 'drawRect') return
+    if (e.button !== 0 || isPanMode.value) return
     if (!canvas.value) return
-    isDragging = true
-    dragStart = pixelAt(e)
-    sheetStore.setInProgressRect(makeRect(dragStart, dragStart))
+
+    const tool = sheetStore.activeTool
+
+    if (tool === 'drawRect' || tool === 'shrinkRect') {
+      isDragging = true
+      dragStart = pixelAt(e)
+      dragEnd = null
+      sheetStore.setInProgressRect(makeRect(dragStart, dragStart))
+      return
+    }
+
+    if (tool === 'growRect') {
+      const seed = pixelAt(e)
+      if (!inImage(seed)) return
+      const pixels = getPixels()
+      if (!pixels) return
+      const result = growRectangle(pixels, seed, sheetBounds(), getMatteColor())
+      if (result) sheetStore.setInProgressRect(result)
+    }
   }
 
   function onMousemove(e: MouseEvent) {
     if (!isDragging || !dragStart || !canvas.value) return
-    sheetStore.setInProgressRect(makeRect(dragStart, pixelAt(e)))
+    dragEnd = pixelAt(e)
+    sheetStore.setInProgressRect(makeRect(dragStart, dragEnd))
   }
 
   function onMouseup() {
+    if (!isDragging) return
+
+    if (sheetStore.activeTool === 'shrinkRect' && dragStart) {
+      const end = dragEnd ?? dragStart
+      const drawnRect = makeRect(dragStart, end)
+      const pixels = getPixels()
+      const result = pixels
+        ? shrinkRectangle(pixels, drawnRect, sheetBounds(), getMatteColor())
+        : null
+      sheetStore.setInProgressRect(result)
+    }
+
     isDragging = false
     dragStart = null
+    dragEnd = null
   }
 
   return { onMousedown, onMousemove, onMouseup }

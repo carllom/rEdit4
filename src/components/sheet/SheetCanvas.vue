@@ -169,8 +169,22 @@ function reCenter() {
   setViewport(zoom.value, centerPanOffset(imgW.value, imgH.value, viewW.value, viewH.value, zoom.value))
 }
 
+// Reads the source image into a 1:1 offscreen canvas and returns its raw RGBA pixels
+function getPixels() {
+  const img = sourceImg.value
+  if (!img || !img.naturalWidth) return null
+  const offscreen = document.createElement('canvas')
+  offscreen.width = img.naturalWidth
+  offscreen.height = img.naturalHeight
+  const ctx = offscreen.getContext('2d')!
+  ctx.imageSmoothingEnabled = false
+  ctx.drawImage(img, 0, 0)
+  const imageData = ctx.getImageData(0, 0, img.naturalWidth, img.naturalHeight)
+  return { data: imageData.data, width: img.naturalWidth, height: img.naturalHeight }
+}
+
 // Rect interaction composable
-const rectInteraction = useRectInteraction(decorCanvas, zoom, panOffset, isPanMode)
+const rectInteraction = useRectInteraction(decorCanvas, zoom, panOffset, isPanMode, getPixels, imgW, imgH)
 
 // Mouse
 function onCanvasMousedown(e: MouseEvent) {
