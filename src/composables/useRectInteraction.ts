@@ -71,6 +71,19 @@ export function useRectInteraction(
       if (!pixels) return
       const result = growRectangle(pixels, seed, sheetBounds(), getMatteColor())
       if (result) sheetStore.setInProgressRect(result)
+      return
+    }
+
+    if (tool === 'pickMatte') {
+      const p = pixelAt(e)
+      if (!inImage(p)) return
+      const pixels = getPixels()
+      if (!pixels) return
+      const i = (p.y * pixels.width + p.x) * 4
+      const a = pixels.data[i + 3]
+      const id = sheetStore.activeSheetId
+      if (!id) return
+      sheetStore.setMatteColor(id, a === 0 ? null : { r: pixels.data[i], g: pixels.data[i + 1], b: pixels.data[i + 2] })
     }
   }
 

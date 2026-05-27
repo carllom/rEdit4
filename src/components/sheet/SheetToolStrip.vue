@@ -1,15 +1,28 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useSheetStore } from '../../stores/sheetStore'
+import { useProjectStore } from '../../stores/projectStore'
 import type { SheetTool } from '../../stores/sheetStore'
 
 const sheetStore = useSheetStore()
+const projectStore = useProjectStore()
 
 const tools: Array<{ id: SheetTool; label: string; title: string }> = [
   { id: 'drawRect',   label: '▭', title: 'Draw Rect' },
   { id: 'growRect',   label: '⊕', title: 'Grow Rect' },
   { id: 'shrinkRect', label: '⊖', title: 'Shrink Rect' },
-  { id: 'pickMatte',  label: '◉', title: 'Pick Matte' },
+  { id: 'pickMatte',  label: '◉', title: 'Pick Matte — click canvas to pick' },
 ]
+
+const matteColor = computed(() =>
+  projectStore.project?.sheets.find(s => s.id === sheetStore.activeSheetId)?.matteColor ?? null
+)
+
+const swatchStyle = computed(() =>
+  matteColor.value
+    ? { background: `rgb(${matteColor.value.r}, ${matteColor.value.g}, ${matteColor.value.b})` }
+    : {}
+)
 </script>
 
 <template>
@@ -21,7 +34,11 @@ const tools: Array<{ id: SheetTool; label: string; title: string }> = [
       :title="tool.title"
       @click="sheetStore.setActiveTool(tool.id)"
     >{{ tool.label }}</button>
-    <div class="matte-swatch" title="Matte color (placeholder)" />
+    <div
+      :class="['matte-swatch', { 'no-matte': !matteColor }]"
+      :style="swatchStyle"
+      :title="matteColor ? `Matte: rgb(${matteColor.r}, ${matteColor.g}, ${matteColor.b})` : 'Matte: none (alpha)'"
+    />
   </div>
 </template>
 
@@ -74,6 +91,16 @@ const tools: Array<{ id: SheetTool; label: string; title: string }> = [
   height: var(--rd-hit-md);
   border: var(--rd-border-w) solid var(--rd-color-border);
   border-radius: var(--rd-radius-1);
-  background: var(--rd-color-surface-3);
+}
+
+.matte-swatch.no-matte {
+  background-color: var(--rd-color-checker-light);
+  background-image:
+    linear-gradient(45deg, var(--rd-color-checker-dark) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--rd-color-checker-dark) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--rd-color-checker-dark) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--rd-color-checker-dark) 75%);
+  background-size: 6px 6px;
+  background-position: 0 0, 0 3px, 3px -3px, -3px 0;
 }
 </style>
