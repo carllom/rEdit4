@@ -57,8 +57,16 @@ An ordered sequence of Frames. Each Frame references a Sprite, a position, and a
 
 ## Sheet
 
-An imported PNG sprite sheet. Contains named SheetEntries, each with a bounding rectangle
-and anchor point. Used for slicing external assets into Images.
+An imported PNG sprite sheet. Has a MatteColor and contains named SheetEntries, each with a bounding rectangle. Used for slicing external assets into Images via the Sheet Editor.
+
+## MatteColor
+
+An optional RGB color on a Sheet that marks the transparent background in the source PNG. Stored as `{ r, g, b } | null`. A pixel is considered transparent during Sheet operations if its alpha channel is 0, OR (when MatteColor is non-null) its RGB matches the MatteColor. Picked interactively by clicking any pixel in the Sheet Editor; clicking a transparent pixel (alpha = 0) sets MatteColor to null, which effectively means only alpha = 0 counts as transparent.
+
+## SheetEntry
+
+A named bounding rectangle within a Sheet, defining the pixel extent of one sub-image. Stored as `{ name, rect: { x, y, w, h } }`. The collection of SheetEntries on a Sheet is its entry list.
+_Avoid_: image boundary, image extent, defined extent.
 
 ## Viewport
 
