@@ -14,6 +14,12 @@ export interface Rect {
   h: number
 }
 
+export interface RgbColor {
+  r: number
+  g: number
+  b: number
+}
+
 export interface Color {
   id: string
   name: string
@@ -80,7 +86,7 @@ export interface Animation {
 export interface SheetEntry {
   name: string
   rect: Rect
-  anchor: Point
+  anchor?: Point
 }
 
 export interface Sheet {
@@ -88,6 +94,7 @@ export interface Sheet {
   name: string
   sourceRef: string  // data URL of imported source PNG
   entries: SheetEntry[]
+  matteColor: RgbColor | null
 }
 
 export interface Project {
