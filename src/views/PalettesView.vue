@@ -8,6 +8,7 @@ import type { Color, Palette, PaletteKind } from '../domain/model'
 import PaletteEntryCard from '../components/palette/PaletteEntryCard.vue'
 import ColorSlotGrid from '../components/palette/ColorSlotGrid.vue'
 import ColorEditor from '../components/palette/ColorEditor.vue'
+import ColorSpreadPanel from '../components/palette/ColorSpreadPanel.vue'
 import AppButton from '../components/ui/AppButton.vue'
 
 interface PaletteEntry {
@@ -205,6 +206,15 @@ function commitSlotName() {
   project.markDirty()
 }
 
+function insertSpread(colors: Color[]) {
+  const entry = selectedEntry.value
+  if (!entry || entry.kind !== 'project') return
+  const palette = project.getPalette(entry.id)
+  if (!palette) return
+  palette.colors.push(...colors)
+  project.markDirty()
+}
+
 function deleteUserTemplate() {
   const entry = selectedEntry.value
   if (!entry || entry.kind !== 'user-template') return
@@ -305,6 +315,16 @@ function deleteUserTemplate() {
                 @keydown.enter="($event.target as HTMLInputElement).blur()"
               />
               <ColorEditor :color="selectedSlot" @change="onSlotColorChange" />
+            </div>
+
+            <!-- Spread generation -->
+            <div>
+              <div class="editor-section-title editor-section-title--spaced">Spread</div>
+              <ColorSpreadPanel
+                v-if="selectedPalette"
+                :palette="selectedPalette"
+                @insert="insertSpread"
+              />
             </div>
 
             <div class="editor-section-title">Actions</div>
@@ -550,6 +570,42 @@ function deleteUserTemplate() {
   color: var(--rd-color-text-muted);
   padding-top: var(--rd-space-2);
   border-top: var(--rd-border-w) solid var(--rd-color-border);
+}
+
+.editor-section-title--inline {
+  border-top: none;
+  padding-top: 0;
+}
+
+.editor-section-title--spaced {
+  margin-bottom: var(--rd-space-4);
+}
+
+.editor-section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--rd-space-3);
+  padding-top: var(--rd-space-2);
+  border-top: var(--rd-border-w) solid var(--rd-color-border);
+  margin-bottom: var(--rd-space-4);
+}
+
+.slot-editor {
+  border: var(--rd-border-w) solid var(--rd-color-border);
+  border-radius: var(--rd-radius-2);
+  overflow: hidden;
+  background: var(--rd-color-surface-2);
+}
+
+.slot-name-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 0;
+  border: none;
+  border-bottom: var(--rd-border-w) solid var(--rd-color-border);
+  font-size: var(--rd-text-12);
+  font-weight: var(--rd-weight-regular);
 }
 
 .editor-actions {
