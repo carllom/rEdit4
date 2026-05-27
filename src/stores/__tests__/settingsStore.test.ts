@@ -30,6 +30,48 @@ describe('defaults', () => {
   })
 })
 
+describe('spritePreviewZoom defaults', () => {
+  it('defaults to 2', () => {
+    expect(useSettingsStore().settings.spritePreviewZoom).toBe(2)
+  })
+})
+
+describe('spritePreviewZoom persistence', () => {
+  it('persists spritePreviewZoom changes to localStorage', async () => {
+    const store = useSettingsStore()
+    store.settings.spritePreviewZoom = 4
+    await nextTick()
+    const raw = localStorage.getItem('redit:settings')
+    expect(JSON.parse(raw!).spritePreviewZoom).toBe(4)
+  })
+
+  it('loads saved spritePreviewZoom from localStorage', () => {
+    localStorage.setItem('redit:settings', JSON.stringify({ spritePreviewZoom: 6 }))
+    setActivePinia(createPinia())
+    expect(useSettingsStore().settings.spritePreviewZoom).toBe(6)
+  })
+})
+
+describe('spritePreviewZoom clamping', () => {
+  it('clamps a stored value below 1 up to 1', () => {
+    localStorage.setItem('redit:settings', JSON.stringify({ spritePreviewZoom: 0 }))
+    setActivePinia(createPinia())
+    expect(useSettingsStore().settings.spritePreviewZoom).toBe(1)
+  })
+
+  it('clamps a stored value above 8 down to 8', () => {
+    localStorage.setItem('redit:settings', JSON.stringify({ spritePreviewZoom: 99 }))
+    setActivePinia(createPinia())
+    expect(useSettingsStore().settings.spritePreviewZoom).toBe(8)
+  })
+
+  it('leaves a valid value unchanged', () => {
+    localStorage.setItem('redit:settings', JSON.stringify({ spritePreviewZoom: 3 }))
+    setActivePinia(createPinia())
+    expect(useSettingsStore().settings.spritePreviewZoom).toBe(3)
+  })
+})
+
 describe('persistence', () => {
   it('persists settings to localStorage after a mutation', async () => {
     const store = useSettingsStore()

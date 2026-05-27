@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Project, ReImage, Palette } from '../domain/model'
+import type { Project, ReImage, Palette, Sprite } from '../domain/model'
 import { uid, makePalette, makeImage } from '../domain/color'
 import { clonePalette } from '../domain/paletteOps'
 import { usePaletteTemplateStore } from './paletteTemplateStore'
@@ -77,8 +77,26 @@ export const useProjectStore = defineStore('project', () => {
     isDirty.value = true
   }
 
+  function addSprite(name = 'Sprite'): Sprite | null {
+    if (!project.value) return null
+    const sprite: Sprite = { id: uid(), name, anchor: { x: 0, y: 0 }, parts: [] }
+    project.value.sprites.push(sprite)
+    isDirty.value = true
+    return sprite
+  }
+
+  function removeSprite(id: string): void {
+    if (!project.value) return
+    project.value.sprites = project.value.sprites.filter(s => s.id !== id)
+    isDirty.value = true
+  }
+
+  function getSprite(id: string): Sprite | undefined {
+    return project.value?.sprites.find(s => s.id === id)
+  }
+
   function markDirty() { isDirty.value = true }
   function markClean() { isDirty.value = false }
 
-  return { project, isDirty, hasProject, newProject, addImage, removeImage, getPalette, getImage, reorderLayer, appendImages, appendPalettes, markDirty, markClean }
+  return { project, isDirty, hasProject, newProject, addImage, removeImage, getPalette, getImage, reorderLayer, appendImages, appendPalettes, addSprite, removeSprite, getSprite, markDirty, markClean }
 })

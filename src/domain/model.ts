@@ -62,6 +62,7 @@ export interface ReImage {
 export interface Part {
   imageId: string
   position: Point
+  name?: string
 }
 
 export interface Sprite {

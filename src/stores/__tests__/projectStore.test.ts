@@ -242,6 +242,108 @@ describe('reorderLayer', () => {
   })
 })
 
+describe('addSprite', () => {
+  it('returns null when no project is open', () => {
+    expect(useProjectStore().addSprite()).toBeNull()
+  })
+
+  it('adds a Sprite and returns it', () => {
+    const store = useProjectStore()
+    store.newProject()
+    const sprite = store.addSprite('Hero')
+    expect(store.project?.sprites).toHaveLength(1)
+    expect(sprite?.name).toBe('Hero')
+  })
+
+  it('new Sprite has anchor at (0, 0)', () => {
+    const store = useProjectStore()
+    store.newProject()
+    const sprite = store.addSprite()!
+    expect(sprite.anchor).toEqual({ x: 0, y: 0 })
+  })
+
+  it('new Sprite has an empty parts list', () => {
+    const store = useProjectStore()
+    store.newProject()
+    const sprite = store.addSprite()!
+    expect(sprite.parts).toHaveLength(0)
+  })
+
+  it('new Sprite has a non-empty id', () => {
+    const store = useProjectStore()
+    store.newProject()
+    expect(store.addSprite()?.id).toBeTruthy()
+  })
+
+  it('marks the project dirty', () => {
+    const store = useProjectStore()
+    store.newProject()
+    store.markClean()
+    store.addSprite()
+    expect(store.isDirty).toBe(true)
+  })
+
+  it('multiple sprites accumulate', () => {
+    const store = useProjectStore()
+    store.newProject()
+    store.addSprite('A')
+    store.addSprite('B')
+    expect(store.project?.sprites).toHaveLength(2)
+  })
+})
+
+describe('removeSprite', () => {
+  it('does nothing when no project is open', () => {
+    expect(() => useProjectStore().removeSprite('spr-x')).not.toThrow()
+  })
+
+  it('removes the Sprite with the matching id', () => {
+    const store = useProjectStore()
+    store.newProject()
+    const sprite = store.addSprite()!
+    store.removeSprite(sprite.id)
+    expect(store.project?.sprites).toHaveLength(0)
+  })
+
+  it('leaves other Sprites intact', () => {
+    const store = useProjectStore()
+    store.newProject()
+    const a = store.addSprite('A')!
+    const b = store.addSprite('B')!
+    store.removeSprite(a.id)
+    expect(store.project?.sprites).toHaveLength(1)
+    expect(store.project?.sprites[0].id).toBe(b.id)
+  })
+
+  it('marks the project dirty', () => {
+    const store = useProjectStore()
+    store.newProject()
+    const sprite = store.addSprite()!
+    store.markClean()
+    store.removeSprite(sprite.id)
+    expect(store.isDirty).toBe(true)
+  })
+})
+
+describe('getSprite', () => {
+  it('returns undefined when no project is open', () => {
+    expect(useProjectStore().getSprite('spr-1')).toBeUndefined()
+  })
+
+  it('returns the Sprite with the matching id', () => {
+    const store = useProjectStore()
+    store.newProject()
+    const sprite = store.addSprite()!
+    expect(store.getSprite(sprite.id)?.id).toBe(sprite.id)
+  })
+
+  it('returns undefined for an unknown id', () => {
+    const store = useProjectStore()
+    store.newProject()
+    expect(store.getSprite('nonexistent')).toBeUndefined()
+  })
+})
+
 describe('markDirty / markClean', () => {
   it('markDirty sets isDirty to true', () => {
     const store = useProjectStore()

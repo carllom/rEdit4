@@ -12,6 +12,7 @@ export interface AppSettings {
   previewBackground: 'checkerboard' | 'solid'
   previewBackgroundColor: string                  // hex, used when previewBackground === 'solid'
   defaultPaletteTemplateId: string
+  spritePreviewZoom: number                       // 1–8
 }
 
 const DEFAULTS: AppSettings = {
@@ -21,13 +22,20 @@ const DEFAULTS: AppSettings = {
   previewBackground: 'checkerboard',
   previewBackgroundColor: '#000000',
   defaultPaletteTemplateId: FALLBACK_PALETTE_ID,
+  spritePreviewZoom: 2,
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max)
 }
 
 function load(): AppSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return { ...DEFAULTS }
-    return { ...DEFAULTS, ...JSON.parse(raw) }
+    const parsed: AppSettings = { ...DEFAULTS, ...JSON.parse(raw) }
+    parsed.spritePreviewZoom = clamp(parsed.spritePreviewZoom, 1, 8)
+    return parsed
   } catch {
     return { ...DEFAULTS }
   }

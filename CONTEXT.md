@@ -41,6 +41,33 @@ A single palette slot: name + R, G, B, A (0–255 each). Index 0 is always trans
 A pixel bitmap of fixed width × height. Has one or more Layers and references one Palette.
 Pixel data is palette-indexed: each byte is a Color index (0–255).
 
+## Image Picker
+
+A modal dialog component for selecting one or more Images from the project. Accepts a `mode`
+prop (`single` | `multi`). Used wherever an Image must be chosen: adding a Part to a Sprite
+(single), switching the active Image in the Image Editor (single), selecting source Images in
+the Sheet Creator (multi). Displays Images as thumbnail+name tiles arranged in a grid, grouped
+under collapsible Name-Prefix Group headers. Supports free-text name search. Thumbnail size is
+fixed (medium) in Phase 2. Will eventually support Faceted Labels.
+
+_Future: the Sprite list in the sidebar may need to evolve to a most-recently-used list
+complemented by a Sprite Picker (analogous to the Image Picker) for projects with thousands
+of Sprites. Deferred beyond Phase 2._
+
+### Name-Prefix Group
+
+An auto-derived grouping of Images whose names share a common prefix before the first `_`
+separator (e.g. `walk_01`, `walk_02` → group `walk`). Computed at display time — no stored
+metadata. Images without a `_` separator appear in an ungrouped section.
+
+### Faceted Label
+
+_Deferred — not in Phase 2._ A classification tag attached to an Image, in one of two forms:
+a bare label (e.g. `hero`) or a key:value pair (e.g. `Direction:Left`, `Character:AAA`).
+Enables multi-axis filtering in the Image Picker (e.g. show all Images where
+`Character=AAA` AND `Direction=Left`). Will require a `labels: string[]` field on `ReImage`
+and a label-editing UI.
+
 ## Layer
 
 A single plane of indexed pixel data within an Image. Has opacity (0.0–1.0) and visibility.
@@ -48,8 +75,53 @@ Layers are composited bottom-to-top. Only the active Layer is painted into.
 
 ## Sprite
 
-A composition of one or more Images arranged at offsets, with a named anchor point.
-The anchor is used by Animation Frames for positional reference.
+A named composition of one or more Parts arranged in a shared local coordinate space.
+Has an Anchor point and an ordered Part list. The Sprite Editor shows a live Sprite Preview
+at the bottom of the Part panel.
+
+### Sprite Preview
+
+A small read-only panel at the bottom of the Part panel showing the composited Sprite at a
+configurable zoom (Application Setting, clamped to a reasonable range). Updated live as Parts
+are moved or the Anchor changes. Purpose: see the Sprite at true pixel scale while editing.
+Uses the same Preview Background Application Setting as the Flash Card Preview.
+_Avoid_: thumbnail (reserved for Image Picker tiles)
+
+### Sprite Local Space
+
+A free 2D coordinate system with a stable origin at `(0, 0)`. All Part positions and the
+Anchor are expressed as offsets from this origin. The origin is not tied to any bounding box
+or visual feature of the Parts — it is an arbitrary but stable reference point. Parts may
+have negative coordinates. Nothing is recalculated when Parts are moved.
+
+### Part
+
+A single Image placed within a Sprite's local space. Stores `imageId`, `position: Point`
+(offset from the Sprite's `(0, 0)` origin), and an optional `name`. If `name` is absent,
+the referenced Image's name is used as the display label. The Part list is ordered; Parts
+render bottom-to-top (same direction as Layers within an Image). The same Image may appear
+in multiple Parts of the same Sprite (no uniqueness constraint). Parts can be drag-reordered.
+A selected Part is repositioned by dragging on the canvas, nudging with arrow keys, or editing
+live `x`/`y` NumericInput fields in the Part panel.
+
+_Avoid_: image slot, layer (within a Sprite context)
+
+### Anchor
+
+A named `Point` in Sprite local space that defines the placement hot-spot. When a Sprite
+is placed at world position `(wx, wy)`, the Anchor lands at `(wx, wy)`. Each Part then
+renders at `(wx - anchor.x + part.position.x, wy - anchor.y + part.position.y)`.
+Moving the Anchor crosshair in the editor does not move Parts — only the hot-spot shifts.
+Used by Animation Frames to align consecutive Sprites (e.g. foot-planting across a walk cycle).
+The Anchor is repositioned by dragging its crosshair on the canvas or via `x`/`y` NumericInput fields.
+
+_Avoid_: pivot, origin, hot-spot (use Anchor)
+
+### Referential Integrity (Image → Part)
+
+Deleting an Image that is referenced by one or more Parts is blocked. The user receives a
+message listing the Sprites that hold the reference and must remove those Parts first.
+The same block-with-message policy applies to deleting a Sprite referenced by Animation Frames.
 
 ## Animation
 

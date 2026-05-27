@@ -10,6 +10,7 @@ export const useEditorStore = defineStore('editor', () => {
   const activePaletteId = ref<string | null>(null)
   const activeSpriteId = ref<string | null>(null)
   const activeAnimationId = ref<string | null>(null)
+  const activePartIndex = ref<number | null>(null)
 
   function setTab(tab: EditorTab) { activeTab.value = tab }
   function setActiveImage(imageId: string, layerId: string, paletteId: string) {
@@ -23,10 +24,17 @@ export const useEditorStore = defineStore('editor', () => {
     activeLayerId.value = null
     activePaletteId.value = null
   }
+  function setActiveSprite(id: string | null) {
+    activeSpriteId.value = id
+    activePartIndex.value = null
+  }
+  function setActivePartIndex(index: number | null) {
+    activePartIndex.value = index
+  }
 
   return {
-    activeTab, activeImageId, activeLayerId, activePaletteId, activeSpriteId, activeAnimationId,
-    setTab, setActiveImage, setActiveLayer, clearActiveImage,
+    activeTab, activeImageId, activeLayerId, activePaletteId, activeSpriteId, activeAnimationId, activePartIndex,
+    setTab, setActiveImage, setActiveLayer, clearActiveImage, setActiveSprite, setActivePartIndex,
   }
 }, {
   persist: {

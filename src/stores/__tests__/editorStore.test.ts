@@ -67,6 +67,50 @@ describe('setActiveLayer', () => {
   })
 })
 
+describe('setActiveSprite', () => {
+  it('sets activeSpriteId', () => {
+    const store = useEditorStore()
+    store.setActiveSprite('spr-1')
+    expect(store.activeSpriteId).toBe('spr-1')
+  })
+
+  it('resets activePartIndex to null', () => {
+    const store = useEditorStore()
+    store.setActivePartIndex(2)
+    store.setActiveSprite('spr-1')
+    expect(store.activePartIndex).toBeNull()
+  })
+
+  it('accepts null to deselect', () => {
+    const store = useEditorStore()
+    store.setActiveSprite('spr-1')
+    store.setActiveSprite(null)
+    expect(store.activeSpriteId).toBeNull()
+  })
+})
+
+describe('setActivePartIndex', () => {
+  it('sets activePartIndex', () => {
+    const store = useEditorStore()
+    store.setActivePartIndex(3)
+    expect(store.activePartIndex).toBe(3)
+  })
+
+  it('accepts null to deselect', () => {
+    const store = useEditorStore()
+    store.setActivePartIndex(1)
+    store.setActivePartIndex(null)
+    expect(store.activePartIndex).toBeNull()
+  })
+
+  it('does not affect activeSpriteId', () => {
+    const store = useEditorStore()
+    store.setActiveSprite('spr-1')
+    store.setActivePartIndex(0)
+    expect(store.activeSpriteId).toBe('spr-1')
+  })
+})
+
 describe('clearActiveImage', () => {
   it('nulls imageId, layerId, and paletteId', () => {
     const store = useEditorStore()

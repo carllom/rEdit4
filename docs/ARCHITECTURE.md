@@ -467,9 +467,10 @@ Alongside the PNG, generate a CSS file with `background-position` classes per sp
 - Onion skinning
 
 ### Phase 4 — Sheet Editor
-- Import PNG → slice into named entries with anchor points
-- Auto-shrink bounding box
-- Export sprite sheet PNG + JSON + CSS
+- ✓ Import PNG → slice into named entries
+- ☐ Add anchor points to sheet entries
+- ✓ Auto-shrink bounding box
+- ☐ Export sprite sheet PNG + JSON + CSS
 
 ### Phase 5 — Advanced Tools & Export
 

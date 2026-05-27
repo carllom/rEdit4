@@ -33,6 +33,11 @@ const { settings } = useSettingsStore()
         title="Preview background color"
       />
     </SettingsRow>
+
+    <SettingsRow label="Sprite preview zoom" description="Zoom level for the Sprite Preview panel (1–8×)">
+      <NumericInput v-model="settings.spritePreviewZoom" :min="1" :max="8" />
+      <span class="setting-unit">×</span>
+    </SettingsRow>
   </div>
 </template>
 
