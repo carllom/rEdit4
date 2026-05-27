@@ -2,10 +2,12 @@
 import { computed, ref, watch } from 'vue'
 import { useProjectStore } from '../stores/projectStore'
 import { usePaletteTemplateStore } from '../stores/paletteTemplateStore'
-import { makePalette } from '../domain/color'
-import { clonePalette, findPaletteUsage } from '../domain/paletteOps'
-import type { PaletteKind } from '../domain/model'
+import { makeColor, makePalette } from '../domain/color'
+import { clonePalette, findPaletteUsage, swapPaletteColors } from '../domain/paletteOps'
+import type { Color, Palette, PaletteKind } from '../domain/model'
 import PaletteEntryCard from '../components/palette/PaletteEntryCard.vue'
+import ColorSlotGrid from '../components/palette/ColorSlotGrid.vue'
+import ColorEditor from '../components/palette/ColorEditor.vue'
 import AppButton from '../components/ui/AppButton.vue'
 
 interface PaletteEntry {
@@ -49,13 +51,37 @@ const deleteError = ref<string | null>(null)
 const promoteError = ref<string | null>(null)
 const promoteSuccess = ref(false)
 
+// Color slot state
+const selectedSlotIndex = ref<number | null>(null)
+const editSlotName = ref('')
+
+// Live palette object for the selected entry (reactive for project palettes)
+const selectedPalette = computed<Palette | null>(() => {
+  const entry = selectedEntry.value
+  if (!entry) return null
+  if (entry.kind === 'project') return project.getPalette(entry.id) ?? null
+  return { id: entry.id, name: entry.name, description: entry.description, colors: entry.colors }
+})
+
+// The live Color object for the currently selected slot
+const selectedSlot = computed<Color | null>(() => {
+  const idx = selectedSlotIndex.value
+  if (idx === null || !selectedEntry.value || selectedEntry.value.kind !== 'project') return null
+  return project.getPalette(selectedEntry.value.id)?.colors[idx] ?? null
+})
+
 watch(selectedEntry, (entry) => {
   editName.value = entry?.name ?? ''
   editDesc.value = entry?.description ?? ''
   deleteError.value = null
   promoteError.value = null
   promoteSuccess.value = false
+  selectedSlotIndex.value = null
 }, { immediate: true })
+
+watch(selectedSlot, (slot) => {
+  editSlotName.value = slot?.name ?? ''
+})
 
 function createPalette() {
   if (!project.project) return
@@ -142,6 +168,43 @@ function importTemplate() {
   if (newPalette) selectedId.value = newPalette.id
 }
 
+function addColor() {
+  if (!project.project) return
+  const entry = selectedEntry.value
+  if (!entry || entry.kind !== 'project') return
+  const palette = project.getPalette(entry.id)
+  if (!palette) return
+  const color = makeColor()
+  palette.colors.push(color)
+  project.markDirty()
+  selectedSlotIndex.value = palette.colors.length - 1
+}
+
+function onSlotSwap(a: number, b: number) {
+  const entry = selectedEntry.value
+  if (!entry || entry.kind !== 'project') return
+  const palette = project.getPalette(entry.id)
+  if (!palette) return
+  swapPaletteColors(palette, a, b)
+  project.markDirty()
+}
+
+function onSlotColorChange() {
+  project.markDirty()
+}
+
+function commitSlotName() {
+  const entry = selectedEntry.value
+  if (!entry || entry.kind !== 'project') return
+  const palette = project.getPalette(entry.id)
+  if (!palette || selectedSlotIndex.value === null) return
+  const color = palette.colors[selectedSlotIndex.value]
+  if (!color) return
+  color.name = editSlotName.value.trim() || 'New color'
+  editSlotName.value = color.name
+  project.markDirty()
+}
+
 function deleteUserTemplate() {
   const entry = selectedEntry.value
   if (!entry || entry.kind !== 'user-template') return
@@ -215,6 +278,35 @@ function deleteUserTemplate() {
               />
             </div>
 
+            <!-- Color slots -->
+            <div>
+              <div class="editor-section-header">
+                <span class="editor-section-title editor-section-title--inline">
+                  Colors ({{ selectedEntry.colors.length }})
+                </span>
+                <button class="header-new-btn" title="Add color" @click="addColor">+</button>
+              </div>
+              <ColorSlotGrid
+                v-if="selectedPalette"
+                :palette="selectedPalette"
+                :selectedIndex="selectedSlotIndex"
+                @select="selectedSlotIndex = $event"
+                @swap="onSlotSwap"
+              />
+            </div>
+
+            <!-- Selected slot editor -->
+            <div v-if="selectedSlot" class="slot-editor">
+              <input
+                class="editor-name-input slot-name-input"
+                v-model="editSlotName"
+                placeholder="Color name"
+                @blur="commitSlotName"
+                @keydown.enter="($event.target as HTMLInputElement).blur()"
+              />
+              <ColorEditor :color="selectedSlot" @change="onSlotColorChange" />
+            </div>
+
             <div class="editor-section-title">Actions</div>
             <div class="editor-actions">
               <AppButton @click="cloneCurrent">Clone</AppButton>
@@ -235,6 +327,20 @@ function deleteUserTemplate() {
         <template v-else>
           <div class="editor-body">
             <div v-if="selectedEntry.description" class="editor-desc-static">{{ selectedEntry.description }}</div>
+
+            <!-- Readonly color grid -->
+            <div>
+              <div class="editor-section-title editor-section-title--spaced">
+                Colors ({{ selectedEntry.colors.length }})
+              </div>
+              <ColorSlotGrid
+                v-if="selectedPalette"
+                :palette="selectedPalette"
+                :selectedIndex="null"
+                :readonly="true"
+              />
+            </div>
+
             <div class="editor-section-title">Actions</div>
             <div class="editor-actions">
               <AppButton @click="importTemplate">Import into project</AppButton>
