@@ -121,7 +121,7 @@ export function useRectInteraction(
       isDragging = true
       dragStart = pixelAt(e)
       dragEnd = null
-      sheetStore.setInProgressRect(clampToImage(makeRect(dragStart, dragStart)))
+      sheetStore.setInProgressRect(clampToImage(makeRect(dragStart, dragStart)), true)
       return
     }
 
@@ -131,7 +131,7 @@ export function useRectInteraction(
       const pixels = getPixels()
       if (!pixels) return
       const result = growRectangle(pixels, seed, sheetBounds(), getMatteColor())
-      if (result) sheetStore.setInProgressRect(result)
+      if (result) sheetStore.setInProgressRect(result, true)
       return
     }
 
@@ -175,7 +175,7 @@ export function useRectInteraction(
     // Draw drag
     if (!isDragging || !dragStart || !canvas.value) return
     dragEnd = pixelAt(e)
-    sheetStore.setInProgressRect(clampToImage(makeRect(dragStart, dragEnd)))
+    sheetStore.setInProgressRect(clampToImage(makeRect(dragStart, dragEnd)), true)
   }
 
   function onMouseup() {
@@ -192,7 +192,7 @@ export function useRectInteraction(
       const result = clamped && getPixels()
         ? shrinkRectangle(getPixels()!, clamped, sheetBounds(), getMatteColor())
         : null
-      sheetStore.setInProgressRect(result)
+      sheetStore.setInProgressRect(result, true)
     }
 
     isDragging = false

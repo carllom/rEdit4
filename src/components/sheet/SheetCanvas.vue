@@ -92,6 +92,25 @@ function redrawDecoration() {
   const ctx = decorCanvas.value?.getContext('2d')
   if (!ctx || viewW.value === 0) return
   ctx.clearRect(0, 0, viewW.value, viewH.value)
+
+  // Draw accepted entry overlays — accent color (canvas drawing, hex values are exempt from token rule)
+  const entries = activeSheet.value?.entries ?? []
+  const activeEntry = sheetStore.activeEntryName
+  for (const entry of entries) {
+    const isActive = entry.name === activeEntry
+    const tl = pixelToScreen(entry.rect.x, entry.rect.y, zoom.value, panOffset.value)
+    const sw = entry.rect.w * zoom.value
+    const sh = entry.rect.h * zoom.value
+    ctx.save()
+    ctx.fillStyle = isActive ? 'rgba(79,195,247,0.60)' : 'rgba(79,195,247,0.30)'
+    ctx.fillRect(tl.x, tl.y, sw, sh)
+    ctx.strokeStyle = '#4fc3f7'
+    ctx.lineWidth = isActive ? 2 : 1
+    ctx.strokeRect(tl.x + 0.5, tl.y + 0.5, sw - 1, sh - 1)
+    ctx.restore()
+  }
+
+  // Draw in-progress rect on top
   const rect = sheetStore.inProgressRect
   if (!rect) return
   const tl = pixelToScreen(rect.x, rect.y, zoom.value, panOffset.value)
@@ -108,7 +127,7 @@ function redrawDecoration() {
 
 watch([zoom, panOffset, viewW, viewH, sourceImg], redrawSource, { flush: 'post', deep: true })
 watch(
-  [zoom, panOffset, viewW, viewH, () => sheetStore.inProgressRect],
+  [zoom, panOffset, viewW, viewH, () => sheetStore.inProgressRect, () => activeSheet.value?.entries, () => sheetStore.activeEntryName],
   redrawDecoration,
   { flush: 'post', deep: true },
 )

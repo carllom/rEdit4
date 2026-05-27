@@ -87,6 +87,7 @@ export interface SheetEntry {
   name: string
   rect: Rect
   anchor?: Point
+  thumbnail?: string  // 24×24 data URL, generated at acceptance time
 }
 
 export interface Sheet {

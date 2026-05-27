@@ -6,6 +6,27 @@ import { useProjectStore } from './projectStore'
 
 export type SheetTool = 'pickMatte' | 'drawRect' | 'growRect' | 'shrinkRect'
 
+function generateThumbnail(sourceRef: string, rect: Rect): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = 24
+      canvas.height = 24
+      const ctx = canvas.getContext('2d')!
+      ctx.imageSmoothingEnabled = false
+      const scale = Math.min(24 / rect.w, 24 / rect.h)
+      const dw = Math.round(rect.w * scale)
+      const dh = Math.round(rect.h * scale)
+      const dx = Math.floor((24 - dw) / 2)
+      const dy = Math.floor((24 - dh) / 2)
+      ctx.drawImage(img, rect.x, rect.y, rect.w, rect.h, dx, dy, dw, dh)
+      resolve(canvas.toDataURL())
+    }
+    img.src = sourceRef
+  })
+}
+
 export const useSheetStore = defineStore('sheet', () => {
   const projectStore = useProjectStore()
 
@@ -75,11 +96,25 @@ export const useSheetStore = defineStore('sheet', () => {
     projectStore.markDirty()
   }
 
+  function renameEntry(sheetId: string, oldName: string, newName: string): void {
+    const sheet = getSheet(sheetId)
+    if (!sheet) return
+    const entry = sheet.entries.find(e => e.name === oldName)
+    if (!entry) return
+    entry.name = newName
+    if (activeEntryName.value === oldName) activeEntryName.value = newName
+    const idx = checkedEntryNames.value.indexOf(oldName)
+    if (idx >= 0) checkedEntryNames.value[idx] = newName
+    projectStore.markDirty()
+  }
+
   function deleteEntry(sheetId: string, entryName: string): void {
     const sheet = getSheet(sheetId)
     if (!sheet) return
     sheet.entries = sheet.entries.filter(e => e.name !== entryName)
     if (activeEntryName.value === entryName) activeEntryName.value = null
+    const idx = checkedEntryNames.value.indexOf(entryName)
+    if (idx >= 0) checkedEntryNames.value.splice(idx, 1)
     projectStore.markDirty()
   }
 
@@ -91,6 +126,17 @@ export const useSheetStore = defineStore('sheet', () => {
     const [item] = entries.splice(fromIdx, 1)
     entries.splice(toIdx, 0, item)
     projectStore.markDirty()
+  }
+
+  // ─── Entry selection ──────────────────────────────────────────────────────
+
+  // Sets both activeEntryName and inProgressRect to reflect the selected entry.
+  // Bypasses setInProgressRect intentionally to avoid clearing activeEntryName.
+  function selectEntry(sheetId: string, entryName: string): void {
+    const entry = getSheet(sheetId)?.entries.find(e => e.name === entryName)
+    if (!entry) return
+    activeEntryName.value = entryName
+    inProgressRect.value = { ...entry.rect }
   }
 
   // ─── Matte and tool state ─────────────────────────────────────────────────
@@ -110,8 +156,11 @@ export const useSheetStore = defineStore('sheet', () => {
     activeTool.value = tool
   }
 
-  function setInProgressRect(rect: Rect | null): void {
+  // clearActiveEntry: pass true when starting a fresh draw so any selected entry is deselected.
+  // Passing null always clears activeEntryName (Cancel).
+  function setInProgressRect(rect: Rect | null, clearActiveEntry = false): void {
     inProgressRect.value = rect
+    if (rect === null || clearActiveEntry) activeEntryName.value = null
   }
 
   function patchInProgressRect(patch: Partial<Rect>): void {
@@ -121,8 +170,35 @@ export const useSheetStore = defineStore('sheet', () => {
 
   function acceptInProgressRect(): void {
     if (!inProgressRect.value || !activeSheetId.value) return
-    addEntry(activeSheetId.value, inProgressRect.value)
+    const rect = { ...inProgressRect.value }
+    const sheetId = activeSheetId.value
+    const sheet = getSheet(sheetId)
+
+    if (activeEntryName.value) {
+      // Update existing selected entry
+      const entryName = activeEntryName.value
+      updateEntryRect(sheetId, entryName, rect)
+      if (sheet?.sourceRef) {
+        generateThumbnail(sheet.sourceRef, rect).then(thumb => {
+          const entry = getSheet(sheetId)?.entries.find(e => e.name === entryName)
+          if (entry) entry.thumbnail = thumb
+        })
+      }
+    } else {
+      // Create new entry
+      const entry = addEntry(sheetId, rect)
+      if (entry && sheet?.sourceRef) {
+        const entryName = entry.name
+        generateThumbnail(sheet.sourceRef, rect).then(thumb => {
+          // Re-fetch through the reactive path so Vue tracks the property write
+          const reactiveEntry = getSheet(sheetId)?.entries.find(e => e.name === entryName)
+          if (reactiveEntry) reactiveEntry.thumbnail = thumb
+        })
+      }
+    }
+
     inProgressRect.value = null
+    activeEntryName.value = null
   }
 
   function clearCheckedEntries(): void {
@@ -132,7 +208,8 @@ export const useSheetStore = defineStore('sheet', () => {
   return {
     activeSheetId, activeEntryName, inProgressRect, activeTool, previousTool, checkedEntryNames,
     addSheet, renameSheet, deleteSheet,
-    addEntry, updateEntryRect, deleteEntry, reorderEntry,
+    addEntry, updateEntryRect, renameEntry, deleteEntry, reorderEntry,
+    selectEntry,
     setMatteColor, setActiveTool, setInProgressRect, patchInProgressRect, acceptInProgressRect, clearCheckedEntries,
   }
 })

@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import SheetSelector from '../components/sheet/SheetSelector.vue'
 import SheetToolStrip from '../components/sheet/SheetToolStrip.vue'
 import SheetCanvas from '../components/sheet/SheetCanvas.vue'
+import SheetEntryList from '../components/sheet/SheetEntryList.vue'
 import AppButton from '../components/ui/AppButton.vue'
 import NumericInput from '../components/ui/NumericInput.vue'
 import { useSheetStore } from '../stores/sheetStore'
@@ -67,6 +68,7 @@ const rectH = computed({
             <NumericInput class="field-num" v-model="rectH" :min="1" :max="9999" />
           </div>
         </div>
+        <SheetEntryList />
       </div>
     </div>
   </div>
