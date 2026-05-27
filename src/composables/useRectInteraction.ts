@@ -37,6 +37,17 @@ export function useRectInteraction(
     }
   }
 
+  // Clamps a rect to [0, imgW) × [0, imgH); returns null if entirely outside.
+  function clampToImage(rect: { x: number; y: number; w: number; h: number }) {
+    if (!imgW.value || !imgH.value) return null
+    const x0 = Math.max(0, rect.x)
+    const y0 = Math.max(0, rect.y)
+    const x1 = Math.min(imgW.value - 1, rect.x + rect.w - 1)
+    const y1 = Math.min(imgH.value - 1, rect.y + rect.h - 1)
+    if (x0 > x1 || y0 > y1) return null
+    return { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 }
+  }
+
   function inImage(p: Point): boolean {
     return p.x >= 0 && p.y >= 0 && p.x < imgW.value && p.y < imgH.value
   }
@@ -60,7 +71,7 @@ export function useRectInteraction(
       isDragging = true
       dragStart = pixelAt(e)
       dragEnd = null
-      sheetStore.setInProgressRect(makeRect(dragStart, dragStart))
+      sheetStore.setInProgressRect(clampToImage(makeRect(dragStart, dragStart)))
       return
     }
 
@@ -90,7 +101,7 @@ export function useRectInteraction(
   function onMousemove(e: MouseEvent) {
     if (!isDragging || !dragStart || !canvas.value) return
     dragEnd = pixelAt(e)
-    sheetStore.setInProgressRect(makeRect(dragStart, dragEnd))
+    sheetStore.setInProgressRect(clampToImage(makeRect(dragStart, dragEnd)))
   }
 
   function onMouseup() {
@@ -98,10 +109,9 @@ export function useRectInteraction(
 
     if (sheetStore.activeTool === 'shrinkRect' && dragStart) {
       const end = dragEnd ?? dragStart
-      const drawnRect = makeRect(dragStart, end)
-      const pixels = getPixels()
-      const result = pixels
-        ? shrinkRectangle(pixels, drawnRect, sheetBounds(), getMatteColor())
+      const clamped = clampToImage(makeRect(dragStart, end))
+      const result = clamped && getPixels()
+        ? shrinkRectangle(getPixels()!, clamped, sheetBounds(), getMatteColor())
         : null
       sheetStore.setInProgressRect(result)
     }
