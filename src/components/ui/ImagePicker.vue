@@ -81,7 +81,7 @@ function renderThumbnail(canvas: HTMLCanvasElement, image: ReImage) {
   if (!ctx) return
 
   const rgba = compositeImage(image, palette)
-  const imageData = new ImageData(rgba, image.width, image.height)
+  const imageData = new ImageData(new Uint8ClampedArray(rgba), image.width, image.height)
 
   // Draw to an offscreen canvas at native size then scale to thumb
   const offscreen = document.createElement('canvas')

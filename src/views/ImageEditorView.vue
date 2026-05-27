@@ -6,11 +6,13 @@ import CanvasEditor from '../components/canvas/CanvasEditor.vue'
 import LayerPanel from '../components/layers/LayerPanel.vue'
 import NewImageDialog from '../components/canvas/NewImageDialog.vue'
 import ConfirmDialog from '../components/ui/ConfirmDialog.vue'
+import ImagePicker from '../components/ui/ImagePicker.vue'
 import { useProjectStore } from '../stores/projectStore'
 import { useEditorStore } from '../stores/editorStore'
 import { useHistoryStore } from '../stores/historyStore'
 import { exportImageAsPNG, downloadBlob } from '../storage/fileIO'
 import { canRemoveImage } from '../domain/spriteOps'
+import { compositeImage } from '../domain/color'
 
 const project = useProjectStore()
 const editor = useEditorStore()
@@ -20,9 +22,36 @@ const images = computed(() => project.project?.images ?? [])
 const activeImage = computed(() => editor.activeImageId ? project.getImage(editor.activeImageId) ?? null : null)
 
 const showNewImageDialog = ref(false)
+const showImagePicker = ref(false)
 const imageToRemoveId = ref<string | null>(null)
 const imageToRemoveName = computed(() => imageToRemoveId.value ? (project.getImage(imageToRemoveId.value)?.name ?? '') : '')
 const removeImageBlockers = ref<string[]>([])
+
+const thumbCanvas = ref<HTMLCanvasElement | null>(null)
+
+function renderThumb() {
+  const canvas = thumbCanvas.value
+  if (!canvas) return
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+  ctx.clearRect(0, 0, 24, 24)
+  const img = activeImage.value
+  if (!img) return
+  const palette = project.getPalette(img.paletteId)
+  if (!palette) return
+  const rgba = compositeImage(img, palette)
+  const offscreen = document.createElement('canvas')
+  offscreen.width = img.width
+  offscreen.height = img.height
+  offscreen.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(rgba), img.width, img.height), 0, 0)
+  ctx.imageSmoothingEnabled = false
+  const scale = Math.min(24 / img.width, 24 / img.height)
+  const dw = Math.round(img.width * scale)
+  const dh = Math.round(img.height * scale)
+  ctx.drawImage(offscreen, 0, 0, img.width, img.height, Math.round((24 - dw) / 2), Math.round((24 - dh) / 2), dw, dh)
+}
+
+watch([() => activeImage.value?.id, thumbCanvas], renderThumb)
 
 watch(() => editor.activeImageId, (id) => {
   history.setActiveImage(id)
@@ -71,6 +100,11 @@ function confirmRemoveImage() {
   imageToRemoveId.value = null
 }
 
+function onPickerSelect(ids: string[]) {
+  showImagePicker.value = false
+  if (ids[0]) selectImage(ids[0])
+}
+
 async function exportPNG() {
   const img = activeImage.value
   if (!img) return
@@ -88,17 +122,25 @@ async function exportPNG() {
     <div class="image-toolbar">
       <AppButton size="compact" @click="showNewImageDialog = true">+ New Image</AppButton>
       <AppButton size="compact" :disabled="!activeImage" @click="exportPNG">Export PNG</AppButton>
-      <div class="image-tabs">
-        <div
-          v-for="img in images"
-          :key="img.id"
-          :class="['image-tab', { active: editor.activeImageId === img.id }]"
-          @click="selectImage(img.id)"
-        >
-          <span class="tab-label">{{ img.name }} ({{ img.width }}×{{ img.height }})</span>
-          <button class="tab-close" title="Remove image" @click.stop="requestRemoveImage(img.id)">×</button>
-        </div>
-      </div>
+      <button
+        class="image-indicator"
+        :class="{ empty: !activeImage }"
+        :disabled="!project.hasProject"
+        title="Browse images"
+        @click="showImagePicker = true"
+      >
+        <canvas ref="thumbCanvas" width="24" height="24" class="indicator-thumb" />
+        <span class="indicator-name">
+          {{ activeImage ? `${activeImage.name} (${activeImage.width}×${activeImage.height})` : 'No image' }}
+        </span>
+        <span class="indicator-chevron">▾</span>
+      </button>
+      <button
+        v-if="activeImage"
+        class="indicator-remove"
+        title="Remove active image"
+        @click="requestRemoveImage(activeImage.id)"
+      >×</button>
     </div>
 
     <div class="editor-area">
@@ -138,6 +180,13 @@ async function exportPNG() {
       @confirm="removeImageBlockers = []"
       @cancel="removeImageBlockers = []"
     />
+    <ImagePicker
+      :open="showImagePicker"
+      title="Select Image"
+      mode="single"
+      @confirm="onPickerSelect"
+      @cancel="showImagePicker = false"
+    />
   </div>
 </template>
 
@@ -167,44 +216,62 @@ async function exportPNG() {
 }
 
 
-.image-tabs { display: flex; gap: var(--rd-space-1); overflow-x: auto; }
-
-.image-tab {
+.image-indicator {
   display: flex;
   align-items: center;
   gap: var(--rd-space-2);
-  padding: 3px var(--rd-space-3) 3px var(--rd-space-5);
-  background: none;
-  border: var(--rd-border-w) solid transparent;
-  color: var(--rd-color-text-muted);
-  cursor: pointer;
+  padding: var(--rd-space-1) var(--rd-space-3);
+  background: var(--rd-color-surface-3);
+  border: var(--rd-border-w) solid var(--rd-color-border);
+  border-radius: var(--rd-radius-2);
+  color: var(--rd-color-text);
   font-size: var(--rd-text-11);
-  border-radius: var(--rd-radius-1) var(--rd-radius-1) 0 0;
+  cursor: pointer;
+  min-width: 140px;
+  max-width: 260px;
+}
+.image-indicator:hover:not(:disabled) { background: var(--rd-color-surface-4); border-color: var(--rd-color-border-hover); }
+.image-indicator:disabled { opacity: 0.5; cursor: default; }
+.image-indicator.empty { color: var(--rd-color-text-muted); }
+
+.indicator-thumb {
+  width: 24px;
+  height: 24px;
+  image-rendering: pixelated;
+  background: var(--rd-color-surface-1);
+  border-radius: var(--rd-radius-1);
+  flex-shrink: 0;
+}
+
+.indicator-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
-.image-tab:hover { color: var(--rd-color-text); background: var(--rd-color-surface-2); }
-.image-tab.active { color: var(--rd-color-text); background: var(--rd-color-surface-2); border-color: var(--rd-color-border); }
 
-.tab-close {
+.indicator-chevron {
+  font-size: 10px;
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.indicator-remove {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 14px;
-  height: 14px;
+  width: 20px;
+  height: 20px;
   padding: 0;
   background: none;
   border: none;
   border-radius: var(--rd-radius-1);
   color: var(--rd-color-text-muted);
-  font-size: var(--rd-text-13);
+  font-size: var(--rd-text-14);
   line-height: 1;
   cursor: pointer;
-  opacity: 0;
-  transition: opacity var(--rd-duration-fast) var(--rd-easing-standard);
-  flex-shrink: 0;
 }
-.image-tab:hover .tab-close { opacity: 1; }
-.tab-close:hover { background: var(--rd-color-surface-3); color: var(--rd-color-danger); }
+.indicator-remove:hover { background: var(--rd-color-surface-3); color: var(--rd-color-danger); }
 
 .editor-area { display: flex; flex: 1; overflow: hidden; }
 
