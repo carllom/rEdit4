@@ -133,16 +133,17 @@ describe('addImage', () => {
 })
 
 describe('removeImage', () => {
-  it('does nothing when no project is open', () => {
+  it('returns empty array and does not throw when no project is open', () => {
     const store = useProjectStore()
-    expect(() => store.removeImage('img-x')).not.toThrow()
+    expect(store.removeImage('img-x')).toEqual([])
   })
 
-  it('removes the image with the matching id', () => {
+  it('removes the image with the matching id and returns []', () => {
     const store = useProjectStore()
     store.newProject()
     const img = store.addImage(8, 8)!
-    store.removeImage(img.id)
+    const blockers = store.removeImage(img.id)
+    expect(blockers).toEqual([])
     expect(store.project?.images).toHaveLength(0)
   })
 
@@ -163,6 +164,42 @@ describe('removeImage', () => {
     store.markClean()
     store.removeImage(img.id)
     expect(store.isDirty).toBe(true)
+  })
+
+  it('returns blocking Sprite names and does not remove the image when a Part references it', () => {
+    const store = useProjectStore()
+    store.newProject()
+    const img = store.addImage(8, 8, 'walk_01')!
+    const sprite = store.addSprite('Hero')!
+    sprite.parts.push({ imageId: img.id, position: { x: 0, y: 0 } })
+    const blockers = store.removeImage(img.id)
+    expect(blockers).toEqual(['Hero'])
+    expect(store.project?.images).toHaveLength(1)
+  })
+
+  it('returns all blocking Sprite names when multiple Sprites reference the image', () => {
+    const store = useProjectStore()
+    store.newProject()
+    const img = store.addImage(8, 8)!
+    const a = store.addSprite('Alpha')!
+    const b = store.addSprite('Beta')!
+    a.parts.push({ imageId: img.id, position: { x: 0, y: 0 } })
+    b.parts.push({ imageId: img.id, position: { x: 0, y: 0 } })
+    const blockers = store.removeImage(img.id)
+    expect(blockers).toContain('Alpha')
+    expect(blockers).toContain('Beta')
+    expect(store.project?.images).toHaveLength(1)
+  })
+
+  it('does not mark project dirty when removal is blocked', () => {
+    const store = useProjectStore()
+    store.newProject()
+    const img = store.addImage(8, 8)!
+    const sprite = store.addSprite('Hero')!
+    sprite.parts.push({ imageId: img.id, position: { x: 0, y: 0 } })
+    store.markClean()
+    store.removeImage(img.id)
+    expect(store.isDirty).toBe(false)
   })
 })
 

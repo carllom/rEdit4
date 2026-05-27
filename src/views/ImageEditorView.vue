@@ -10,6 +10,7 @@ import { useProjectStore } from '../stores/projectStore'
 import { useEditorStore } from '../stores/editorStore'
 import { useHistoryStore } from '../stores/historyStore'
 import { exportImageAsPNG, downloadBlob } from '../storage/fileIO'
+import { canRemoveImage } from '../domain/spriteOps'
 
 const project = useProjectStore()
 const editor = useEditorStore()
@@ -21,6 +22,7 @@ const activeImage = computed(() => editor.activeImageId ? project.getImage(edito
 const showNewImageDialog = ref(false)
 const imageToRemoveId = ref<string | null>(null)
 const imageToRemoveName = computed(() => imageToRemoveId.value ? (project.getImage(imageToRemoveId.value)?.name ?? '') : '')
+const removeImageBlockers = ref<string[]>([])
 
 watch(() => editor.activeImageId, (id) => {
   history.setActiveImage(id)
@@ -44,6 +46,16 @@ function selectImage(id: string) {
   const img = project.getImage(id)
   if (!img) return
   editor.setActiveImage(img.id, img.layers[img.layers.length - 1].id, img.paletteId)
+}
+
+function requestRemoveImage(id: string) {
+  const sprites = project.project?.sprites ?? []
+  const blockers = canRemoveImage(sprites, id)
+  if (blockers.length > 0) {
+    removeImageBlockers.value = blockers
+  } else {
+    imageToRemoveId.value = id
+  }
 }
 
 function confirmRemoveImage() {
@@ -84,7 +96,7 @@ async function exportPNG() {
           @click="selectImage(img.id)"
         >
           <span class="tab-label">{{ img.name }} ({{ img.width }}×{{ img.height }})</span>
-          <button class="tab-close" title="Remove image" @click.stop="imageToRemoveId = img.id">×</button>
+          <button class="tab-close" title="Remove image" @click.stop="requestRemoveImage(img.id)">×</button>
         </div>
       </div>
     </div>
@@ -117,6 +129,14 @@ async function exportPNG() {
       confirm-label="Remove"
       @confirm="confirmRemoveImage"
       @cancel="imageToRemoveId = null"
+    />
+    <ConfirmDialog
+      :open="removeImageBlockers.length > 0"
+      title="Cannot Remove Image"
+      :message="`This image is used by: ${removeImageBlockers.join(', ')}. Remove all references before deleting.`"
+      confirm-label="OK"
+      @confirm="removeImageBlockers = []"
+      @cancel="removeImageBlockers = []"
     />
   </div>
 </template>

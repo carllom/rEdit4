@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import type { Project, ReImage, Palette, Sprite } from '../domain/model'
 import { uid, makePalette, makeImage } from '../domain/color'
 import { clonePalette } from '../domain/paletteOps'
+import { canRemoveImage } from '../domain/spriteOps'
 import { usePaletteTemplateStore } from './paletteTemplateStore'
 
 const FALLBACK_PALETTE_ID = 'builtin-cga'
@@ -49,10 +50,14 @@ export const useProjectStore = defineStore('project', () => {
     return project.value?.images.find(img => img.id === id)
   }
 
-  function removeImage(id: string): void {
-    if (!project.value) return
+  // Returns the names of Sprites that block removal. Empty array means the image was removed.
+  function removeImage(id: string): string[] {
+    if (!project.value) return []
+    const blockers = canRemoveImage(project.value.sprites, id)
+    if (blockers.length > 0) return blockers
     project.value.images = project.value.images.filter(img => img.id !== id)
     isDirty.value = true
+    return []
   }
 
   function reorderLayer(imageId: string, fromIdx: number, toIdx: number): void {
