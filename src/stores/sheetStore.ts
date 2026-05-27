@@ -3,8 +3,31 @@ import { ref } from 'vue'
 import type { Sheet, SheetEntry, Rect, RgbColor } from '../domain/model'
 import { uid } from '../domain/color'
 import { useProjectStore } from './projectStore'
+import {
+  checkColorOverflow, extractIndividual, extractMerged,
+  type ExtractionMode,
+} from '../domain/sheetExtraction'
+import type { PixelBuffer } from '../domain/sheetOps'
 
 export type SheetTool = 'pickMatte' | 'drawRect' | 'growRect' | 'shrinkRect'
+
+function loadPixels(sourceRef: string): Promise<PixelBuffer | null> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = img.naturalWidth
+      canvas.height = img.naturalHeight
+      const ctx = canvas.getContext('2d')!
+      ctx.imageSmoothingEnabled = false
+      ctx.drawImage(img, 0, 0)
+      const { data, width, height } = ctx.getImageData(0, 0, img.naturalWidth, img.naturalHeight)
+      resolve({ data, width, height })
+    }
+    img.onerror = () => resolve(null)
+    img.src = sourceRef
+  })
+}
 
 function generateThumbnail(sourceRef: string, rect: Rect): Promise<string> {
   return new Promise((resolve) => {
@@ -205,11 +228,38 @@ export const useSheetStore = defineStore('sheet', () => {
     checkedEntryNames.value = []
   }
 
+  // ─── Extraction ───────────────────────────────────────────────────────────
+
+  async function extract(mode: ExtractionMode, paletteName?: string): Promise<Map<string, number>> {
+    const sheetId = activeSheetId.value
+    if (!sheetId) return new Map()
+    const sheet = getSheet(sheetId)
+    if (!sheet?.sourceRef) return new Map()
+
+    const entries = sheet.entries.filter(e => checkedEntryNames.value.includes(e.name))
+    if (entries.length === 0) return new Map()
+
+    const pixels = await loadPixels(sheet.sourceRef)
+    if (!pixels) return new Map()
+
+    const overflow = checkColorOverflow(pixels, entries, sheet.matteColor, mode)
+    if (overflow.size > 0) return overflow
+
+    const result = mode === 'individual'
+      ? extractIndividual(pixels, sheet, entries)
+      : extractMerged(pixels, sheet, entries, paletteName ?? 'Palette')
+
+    projectStore.appendPalettes(result.palettes)
+    projectStore.appendImages(result.images)
+    clearCheckedEntries()
+    return new Map()
+  }
+
   return {
     activeSheetId, activeEntryName, inProgressRect, activeTool, previousTool, checkedEntryNames,
     addSheet, renameSheet, deleteSheet,
     addEntry, updateEntryRect, renameEntry, deleteEntry, reorderEntry,
     selectEntry,
-    setMatteColor, setActiveTool, setInProgressRect, patchInProgressRect, acceptInProgressRect, clearCheckedEntries,
+    setMatteColor, setActiveTool, setInProgressRect, patchInProgressRect, acceptInProgressRect, clearCheckedEntries, extract,
   }
 })

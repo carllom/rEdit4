@@ -65,8 +65,20 @@ export const useProjectStore = defineStore('project', () => {
     isDirty.value = true
   }
 
+  function appendImages(images: ReImage[]): void {
+    if (!project.value) return
+    project.value.images.push(...images)
+    isDirty.value = true
+  }
+
+  function appendPalettes(palettes: Palette[]): void {
+    if (!project.value) return
+    project.value.palettes.push(...palettes)
+    isDirty.value = true
+  }
+
   function markDirty() { isDirty.value = true }
   function markClean() { isDirty.value = false }
 
-  return { project, isDirty, hasProject, newProject, addImage, removeImage, getPalette, getImage, reorderLayer, markDirty, markClean }
+  return { project, isDirty, hasProject, newProject, addImage, removeImage, getPalette, getImage, reorderLayer, appendImages, appendPalettes, markDirty, markClean }
 })

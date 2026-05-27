@@ -4,6 +4,7 @@ import SheetSelector from '../components/sheet/SheetSelector.vue'
 import SheetToolStrip from '../components/sheet/SheetToolStrip.vue'
 import SheetCanvas from '../components/sheet/SheetCanvas.vue'
 import SheetEntryList from '../components/sheet/SheetEntryList.vue'
+import SheetExtractionPanel from '../components/sheet/SheetExtractionPanel.vue'
 import AppButton from '../components/ui/AppButton.vue'
 import NumericInput from '../components/ui/NumericInput.vue'
 import { useSheetStore } from '../stores/sheetStore'
@@ -69,6 +70,7 @@ const rectH = computed({
           </div>
         </div>
         <SheetEntryList />
+        <SheetExtractionPanel />
       </div>
     </div>
   </div>
