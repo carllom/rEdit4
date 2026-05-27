@@ -114,6 +114,11 @@ export const useSheetStore = defineStore('sheet', () => {
     inProgressRect.value = rect
   }
 
+  function patchInProgressRect(patch: Partial<Rect>): void {
+    if (!inProgressRect.value) return
+    inProgressRect.value = { ...inProgressRect.value, ...patch }
+  }
+
   function acceptInProgressRect(): void {
     if (!inProgressRect.value || !activeSheetId.value) return
     addEntry(activeSheetId.value, inProgressRect.value)
@@ -128,6 +133,6 @@ export const useSheetStore = defineStore('sheet', () => {
     activeSheetId, activeEntryName, inProgressRect, activeTool, previousTool, checkedEntryNames,
     addSheet, renameSheet, deleteSheet,
     addEntry, updateEntryRect, deleteEntry, reorderEntry,
-    setMatteColor, setActiveTool, setInProgressRect, acceptInProgressRect, clearCheckedEntries,
+    setMatteColor, setActiveTool, setInProgressRect, patchInProgressRect, acceptInProgressRect, clearCheckedEntries,
   }
 })

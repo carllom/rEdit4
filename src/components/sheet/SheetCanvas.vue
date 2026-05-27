@@ -14,6 +14,7 @@ import { useProjectStore } from '../../stores/projectStore'
 import {
   ZOOM_LEVELS, fitToViewport, clampPanOffset, centerPanOffset, pixelToScreen,
 } from '../../renderer/viewport'
+import { getHandleScreenPoints, drawHandles, HANDLE_CURSOR } from '../../renderer/rectHandles'
 import { useRectInteraction } from '../../composables/useRectInteraction'
 
 const sheetStore = useSheetStore()
@@ -100,6 +101,8 @@ function redrawDecoration() {
   ctx.lineWidth = 1
   ctx.strokeRect(tl.x + 0.5, tl.y + 0.5, sw - 1, sh - 1)
   ctx.restore()
+  const handles = getHandleScreenPoints(rect, zoom.value, panOffset.value)
+  drawHandles(ctx, handles)
 }
 
 watch([zoom, panOffset, viewW, viewH, sourceImg], redrawSource, { flush: 'post', deep: true })
@@ -185,6 +188,7 @@ function getPixels() {
 
 // Rect interaction composable
 const rectInteraction = useRectInteraction(decorCanvas, zoom, panOffset, isPanMode, getPixels, imgW, imgH)
+const { hoveredHandle, nudge } = rectInteraction
 
 // Mouse
 function onCanvasMousedown(e: MouseEvent) {
@@ -215,6 +219,13 @@ function onKeydown(e: KeyboardEvent) {
   if (e.code === 'Home' && !e.altKey) { reCenter(); e.preventDefault(); return }
   if (e.key === '=' || e.key === '+') { zoomIn(); e.preventDefault(); return }
   if (e.key === '-') { zoomOut(); e.preventDefault(); return }
+  if (sheetStore.inProgressRect) {
+    const step = e.shiftKey ? 10 : 1
+    if (e.key === 'ArrowLeft')  { nudge(-step, 0);    e.preventDefault(); return }
+    if (e.key === 'ArrowRight') { nudge(step,  0);    e.preventDefault(); return }
+    if (e.key === 'ArrowUp')    { nudge(0,    -step); e.preventDefault(); return }
+    if (e.key === 'ArrowDown')  { nudge(0,     step); e.preventDefault(); return }
+  }
   if (e.key === 'Enter' && sheetStore.inProgressRect) { sheetStore.acceptInProgressRect(); e.preventDefault(); return }
   if (e.key === 'Escape') { sheetStore.setInProgressRect(null); e.preventDefault(); return }
 }
@@ -253,7 +264,7 @@ onUnmounted(() => {
     <div
       ref="container"
       class="canvas-viewport"
-      :style="{ cursor: isPanMode ? (isPanning ? 'grabbing' : 'grab') : 'crosshair' }"
+      :style="{ cursor: isPanMode ? (isPanning ? 'grabbing' : 'grab') : (hoveredHandle ? HANDLE_CURSOR[hoveredHandle] : 'crosshair') }"
     >
       <div class="canvas-stack">
         <canvas

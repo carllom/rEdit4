@@ -1,10 +1,23 @@
 import type { Ref } from 'vue'
+import { ref } from 'vue'
 import { useSheetStore } from '../stores/sheetStore'
 import { useProjectStore } from '../stores/projectStore'
 import { screenToPixel } from '../renderer/viewport'
 import { growRectangle, shrinkRectangle } from '../domain/sheetOps'
 import type { PixelBuffer } from '../domain/sheetOps'
 import type { Point } from '../domain/model'
+import { getHandleScreenPoints, hitTestHandle, type HandleId } from '../renderer/rectHandles'
+
+interface ResizeState {
+  anchorX: number
+  anchorY: number
+  movesX: boolean
+  movesY: boolean
+  fixedX: number
+  fixedW: number
+  fixedY: number
+  fixedH: number
+}
 
 export function useRectInteraction(
   canvas: Ref<HTMLCanvasElement | null>,
@@ -18,9 +31,18 @@ export function useRectInteraction(
   const sheetStore = useSheetStore()
   const projectStore = useProjectStore()
 
+  const hoveredHandle = ref<HandleId | null>(null)
+
   let isDragging = false
   let dragStart: Point | null = null
   let dragEnd: Point | null = null
+  let resizeState: ResizeState | null = null
+
+  function screenAt(e: MouseEvent): Point {
+    const el = canvas.value!
+    const r = el.getBoundingClientRect()
+    return { x: e.clientX - r.left, y: e.clientY - r.top }
+  }
 
   function pixelAt(e: MouseEvent): Point {
     const el = canvas.value!
@@ -61,9 +83,37 @@ export function useRectInteraction(
     return { x: 0, y: 0, w: imgW.value, h: imgH.value }
   }
 
+  function startResize(handle: HandleId) {
+    const rect = sheetStore.inProgressRect
+    if (!rect) return
+    const { x, y, w, h } = rect
+    const isLeft = handle === 'tl' || handle === 'bl' || handle === 'l'
+    const isTop  = handle === 'tl' || handle === 't'  || handle === 'tr'
+    resizeState = {
+      anchorX: isLeft ? x + w - 1 : x,
+      anchorY: isTop  ? y + h - 1 : y,
+      movesX: handle !== 't' && handle !== 'b',
+      movesY: handle !== 'l' && handle !== 'r',
+      fixedX: x, fixedW: w, fixedY: y, fixedH: h,
+    }
+  }
+
   function onMousedown(e: MouseEvent) {
     if (e.button !== 0 || isPanMode.value) return
     if (!canvas.value) return
+
+    // Handle hit takes priority — works regardless of active tool
+    const rect = sheetStore.inProgressRect
+    if (rect) {
+      const s = screenAt(e)
+      const handles = getHandleScreenPoints(rect, zoom.value, panOffset.value)
+      const hit = hitTestHandle(s.x, s.y, handles)
+      if (hit) {
+        startResize(hit)
+        hoveredHandle.value = null
+        return
+      }
+    }
 
     const tool = sheetStore.activeTool
 
@@ -99,12 +149,41 @@ export function useRectInteraction(
   }
 
   function onMousemove(e: MouseEvent) {
+    // Hover detection for handle cursor (only when idle)
+    if (!isDragging && !resizeState) {
+      const rect = sheetStore.inProgressRect
+      if (rect && canvas.value) {
+        const s = screenAt(e)
+        const handles = getHandleScreenPoints(rect, zoom.value, panOffset.value)
+        hoveredHandle.value = hitTestHandle(s.x, s.y, handles)
+      } else {
+        hoveredHandle.value = null
+      }
+    }
+
+    // Resize drag
+    if (resizeState && canvas.value) {
+      const mouse = pixelAt(e)
+      const { anchorX, anchorY, movesX, movesY, fixedX, fixedW, fixedY, fixedH } = resizeState
+      let newX = fixedX, newW = fixedW, newY = fixedY, newH = fixedH
+      if (movesX) { newX = Math.min(anchorX, mouse.x); newW = Math.abs(anchorX - mouse.x) + 1 }
+      if (movesY) { newY = Math.min(anchorY, mouse.y); newH = Math.abs(anchorY - mouse.y) + 1 }
+      sheetStore.setInProgressRect(clampToImage({ x: newX, y: newY, w: newW, h: newH }))
+      return
+    }
+
+    // Draw drag
     if (!isDragging || !dragStart || !canvas.value) return
     dragEnd = pixelAt(e)
     sheetStore.setInProgressRect(clampToImage(makeRect(dragStart, dragEnd)))
   }
 
   function onMouseup() {
+    if (resizeState) {
+      resizeState = null
+      return
+    }
+
     if (!isDragging) return
 
     if (sheetStore.activeTool === 'shrinkRect' && dragStart) {
@@ -121,5 +200,14 @@ export function useRectInteraction(
     dragEnd = null
   }
 
-  return { onMousedown, onMousemove, onMouseup }
+  // Moves the in-progress rect by (dx, dy) pixels, clamped so it stays inside the image.
+  function nudge(dx: number, dy: number): void {
+    const rect = sheetStore.inProgressRect
+    if (!rect || !imgW.value || !imgH.value) return
+    const x = Math.max(0, Math.min(imgW.value - rect.w, rect.x + dx))
+    const y = Math.max(0, Math.min(imgH.value - rect.h, rect.y + dy))
+    sheetStore.setInProgressRect({ x, y, w: rect.w, h: rect.h })
+  }
+
+  return { onMousedown, onMousemove, onMouseup, hoveredHandle, nudge }
 }
