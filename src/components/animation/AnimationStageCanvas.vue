@@ -93,6 +93,90 @@ function getCheckerPattern(ctx: CanvasRenderingContext2D): CanvasPattern {
   return checkerPattern
 }
 
+// --- Onion skin ---
+function drawGhostFrame(
+  ctx: CanvasRenderingContext2D,
+  ghost: HTMLCanvasElement,
+  gCtx: CanvasRenderingContext2D,
+  frameIdx: number,
+  opacity: number,
+  tintStyle: string,
+) {
+  const anim = animation.value
+  if (!anim) return
+  const frame = anim.frames[frameIdx]
+  if (!frame) return
+  const sprite = project.getSprite(frame.spriteId) ?? null
+  if (!sprite || sprite.parts.length === 0) return
+
+  const z = zoom.value
+  const pan = panOffset.value
+
+  gCtx.clearRect(0, 0, ghost.width, ghost.height)
+  gCtx.globalCompositeOperation = 'source-over'
+  gCtx.globalAlpha = 1
+  gCtx.imageSmoothingEnabled = false
+
+  for (const part of sprite.parts) {
+    const img = imgMap.value.get(part.imageId)
+    if (!img) continue
+    const pal = palMap.value.get(img.paletteId)
+    if (!pal) continue
+    const rgba = compositeImage(toRaw(img), toRaw(pal))
+    const offscreen = document.createElement('canvas')
+    offscreen.width = img.width
+    offscreen.height = img.height
+    offscreen.getContext('2d')!.putImageData(
+      new ImageData(new Uint8ClampedArray(rgba), img.width, img.height), 0, 0,
+    )
+    const px = frame.position.x - sprite.anchor.x + part.position.x
+    const py = frame.position.y - sprite.anchor.y + part.position.y
+    const sx = (px - pan.x) * z
+    const sy = (py - pan.y) * z
+    gCtx.drawImage(offscreen, 0, 0, img.width, img.height, sx, sy, img.width * z, img.height * z)
+  }
+
+  // 50% blend toward tint, only on non-transparent pixels
+  gCtx.globalCompositeOperation = 'source-atop'
+  gCtx.globalAlpha = 0.5
+  gCtx.fillStyle = tintStyle
+  gCtx.fillRect(0, 0, ghost.width, ghost.height)
+
+  ctx.save()
+  ctx.globalAlpha = opacity
+  ctx.drawImage(ghost, 0, 0)
+  ctx.restore()
+}
+
+function renderOnionSkin(ctx: CanvasRenderingContext2D) {
+  if (!editor.onionSkinEnabled) return
+  const anim = animation.value
+  if (!anim || anim.frames.length === 0) return
+
+  const frameCount = anim.frames.length
+  const currentIdx = editor.activeFrameIndex
+  const opacities = [0.6, 0.3, 0.15]
+
+  const ghost = document.createElement('canvas')
+  ghost.width = viewW.value
+  ghost.height = viewH.value
+  const gCtx = ghost.getContext('2d')!
+
+  // Previous frames (tint red), farthest first so closest lands on top
+  for (let d = editor.onionSkinBefore; d >= 1; d--) {
+    const idx = ((currentIdx - d) % frameCount + frameCount) % frameCount
+    if (idx === currentIdx) continue
+    drawGhostFrame(ctx, ghost, gCtx, idx, opacities[d - 1], 'rgb(255, 0, 0)')
+  }
+
+  // Next frames (tint blue), farthest first so closest lands on top
+  for (let d = editor.onionSkinAfter; d >= 1; d--) {
+    const idx = (currentIdx + d) % frameCount
+    if (idx === currentIdx) continue
+    drawGhostFrame(ctx, ghost, gCtx, idx, opacities[d - 1], 'rgb(0, 0, 255)')
+  }
+}
+
 // --- Rendering ---
 function redraw() {
   const ctx = canvas.value?.getContext('2d')
@@ -129,7 +213,10 @@ function redraw() {
   }
   ctx.restore()
 
-  // 3. Active frame sprite (clipped to Stage)
+  // 3. Onion skin ghost frames (between background and active frame)
+  renderOnionSkin(ctx)
+
+  // 4. Active frame sprite (clipped to Stage)
   const frame = activeFrame.value
   const sprite = activeSprite.value
   if (frame && sprite && sprite.parts.length > 0) {
@@ -165,12 +252,12 @@ function redraw() {
     }
   }
 
-  // 4. Stage boundary outline
+  // 5. Stage boundary outline
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)'
   ctx.lineWidth = 1
   ctx.strokeRect(sl + 0.5, st + 0.5, sw - 1, sh - 1)
 
-  // 5. Origin crosshair at Stage (0, 0)
+  // 6. Origin crosshair at Stage (0, 0)
   const crossSize = 10
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)'
   ctx.lineWidth = 1
@@ -379,12 +466,16 @@ watch(
   [
     zoom, panOffset, viewW, viewH,
     () => editor.activeFrameIndex,
+    () => editor.onionSkinEnabled,
+    () => editor.onionSkinBefore,
+    () => editor.onionSkinAfter,
     () => activeFrame.value?.position,
     () => activeFrame.value?.spriteId,
     () => activeSprite.value?.parts,
     () => activeSprite.value?.anchor,
     () => animation.value?.width,
     () => animation.value?.height,
+    () => animation.value?.frames,
     () => settings.previewBackground,
     () => settings.previewBackgroundColor,
     imgMap, palMap,

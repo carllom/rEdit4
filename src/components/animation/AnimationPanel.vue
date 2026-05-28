@@ -192,6 +192,17 @@ function commitFramePos() {
   })
 }
 
+// --- Onion skin controls ---
+const onionBefore = computed({
+  get() { return editor.onionSkinBefore },
+  set(v: number) { editor.setOnionSkinBefore(v) },
+})
+
+const onionAfter = computed({
+  get() { return editor.onionSkinAfter },
+  set(v: number) { editor.setOnionSkinAfter(v) },
+})
+
 // --- Expose for parent undo/redo row ---
 defineExpose({ animHist })
 </script>
@@ -251,6 +262,27 @@ defineExpose({ animHist })
         <label class="field-label">Y</label>
         <NumericInput v-model="frameY" :min="-4096" :max="4096" @blur="commitFramePos" @change="commitFramePos" />
       </div>
+    </div>
+
+    <!-- Onion Skin controls -->
+    <div v-if="activeAnimation" class="stage-section">
+      <div class="section-header">
+        <span class="section-label">Onion Skin</span>
+        <button
+          :class="['onion-toggle', { active: editor.onionSkinEnabled }]"
+          @click="editor.setOnionSkinEnabled(!editor.onionSkinEnabled)"
+        >{{ editor.onionSkinEnabled ? 'On' : 'Off' }}</button>
+      </div>
+      <template v-if="editor.onionSkinEnabled">
+        <div class="stage-row">
+          <label class="field-label">Before</label>
+          <NumericInput v-model="onionBefore" :min="1" :max="3" />
+        </div>
+        <div class="stage-row">
+          <label class="field-label">After</label>
+          <NumericInput v-model="onionAfter" :min="1" :max="3" />
+        </div>
+      </template>
     </div>
 
     <!-- Undo / Redo -->
@@ -435,6 +467,27 @@ defineExpose({ animHist })
 
 .stage-row :deep(input) {
   width: 48px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.onion-toggle {
+  font-size: var(--rd-text-11);
+  padding: 1px var(--rd-space-2);
+  border-radius: var(--rd-radius-1);
+  border: var(--rd-border-w) solid var(--rd-color-border);
+  background: var(--rd-color-surface-2);
+  color: var(--rd-color-text-muted);
+  cursor: pointer;
+  line-height: 1.4;
+}
+.onion-toggle.active {
+  border-color: var(--rd-color-accent);
+  color: var(--rd-color-accent);
 }
 
 /* Undo row */
