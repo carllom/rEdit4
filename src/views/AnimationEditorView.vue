@@ -2,10 +2,11 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import AnimationPanel from '../components/animation/AnimationPanel.vue'
 import AnimationTimeline from '../components/animation/AnimationTimeline.vue'
+import AnimationStageCanvas from '../components/animation/AnimationStageCanvas.vue'
 import { useProjectStore } from '../stores/projectStore'
 import { useEditorStore } from '../stores/editorStore'
 import { useAnimationHistoryStore } from '../stores/animationHistoryStore'
-import { reorderFrame, updateFrameDuration } from '../domain/animationOps'
+import { reorderFrame, updateFrameDuration, updateFramePosition } from '../domain/animationOps'
 import type { AnimationCommand } from '../domain/animationHistory'
 
 const project = useProjectStore()
@@ -61,6 +62,13 @@ function applyCmd(cmd: AnimationCommand, reverse: boolean) {
         anim.frames,
         cmd.frameIndex,
         reverse ? cmd.oldDuration : cmd.newDuration,
+      )
+      break
+    case 'move-frame':
+      anim.frames = updateFramePosition(
+        anim.frames,
+        cmd.frameIndex,
+        reverse ? cmd.oldPosition : cmd.newPosition,
       )
       break
     case 'duplicate-frame': {
@@ -121,7 +129,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 
     <div class="main-area">
       <div class="stage-area">
-        <span class="placeholder-label">Stage — coming in next slice</span>
+        <AnimationStageCanvas />
       </div>
       <div class="timeline-area">
         <AnimationTimeline ref="timelineRef" />
@@ -150,8 +158,8 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 .stage-area {
   flex: 1;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
+  overflow: hidden;
   background: var(--rd-color-surface-0, var(--rd-color-surface-1));
   border-bottom: var(--rd-border-w) solid var(--rd-color-border);
 }
@@ -164,9 +172,4 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
   overflow: hidden;
 }
 
-.placeholder-label {
-  font-size: var(--rd-text-11);
-  color: var(--rd-color-text-muted);
-  font-style: italic;
-}
 </style>

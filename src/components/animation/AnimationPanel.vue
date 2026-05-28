@@ -7,6 +7,8 @@ import NumericInput from '../ui/NumericInput.vue'
 import { useProjectStore } from '../../stores/projectStore'
 import { useEditorStore } from '../../stores/editorStore'
 import { useAnimationHistoryStore } from '../../stores/animationHistoryStore'
+import { updateFramePosition } from '../../domain/animationOps'
+import type { Point } from '../../domain/model'
 
 const project = useProjectStore()
 const editor = useEditorStore()
@@ -139,6 +141,57 @@ function commitStageResize() {
   })
 }
 
+// --- Active frame position (with "before" snapshot) ---
+const activeFrame = computed(() => {
+  const anim = activeAnimation.value
+  if (!anim) return null
+  return anim.frames[editor.activeFrameIndex] ?? null
+})
+
+const framePosBefore = ref<Point | null>(null)
+
+watch(() => editor.activeAnimationId, () => { framePosBefore.value = null })
+watch(() => editor.activeFrameIndex, () => { framePosBefore.value = null })
+
+const frameX = computed({
+  get() { return activeFrame.value?.position.x ?? 0 },
+  set(v: number) {
+    const anim = activeAnimation.value
+    const frame = activeFrame.value
+    if (!anim || !frame) return
+    if (framePosBefore.value === null) framePosBefore.value = { ...frame.position }
+    anim.frames = updateFramePosition(anim.frames, editor.activeFrameIndex, { x: v, y: frame.position.y })
+    project.markDirty()
+  },
+})
+
+const frameY = computed({
+  get() { return activeFrame.value?.position.y ?? 0 },
+  set(v: number) {
+    const anim = activeAnimation.value
+    const frame = activeFrame.value
+    if (!anim || !frame) return
+    if (framePosBefore.value === null) framePosBefore.value = { ...frame.position }
+    anim.frames = updateFramePosition(anim.frames, editor.activeFrameIndex, { x: frame.position.x, y: v })
+    project.markDirty()
+  },
+})
+
+function commitFramePos() {
+  const anim = activeAnimation.value
+  const frame = activeFrame.value
+  const before = framePosBefore.value
+  framePosBefore.value = null
+  if (!anim || !frame || !before) return
+  if (before.x === frame.position.x && before.y === frame.position.y) return
+  animHist.push(anim.id, {
+    type: 'move-frame',
+    frameIndex: editor.activeFrameIndex,
+    oldPosition: before,
+    newPosition: { ...frame.position },
+  })
+}
+
 // --- Expose for parent undo/redo row ---
 defineExpose({ animHist })
 </script>
@@ -186,6 +239,17 @@ defineExpose({ animHist })
         <NumericInput v-model="stageWidth" :min="1" :max="1024" @blur="commitStageResize" @change="commitStageResize" />
         <label class="field-label">H</label>
         <NumericInput v-model="stageHeight" :min="1" :max="1024" @blur="commitStageResize" @change="commitStageResize" />
+      </div>
+    </div>
+
+    <!-- Frame position inputs -->
+    <div v-if="activeFrame" class="stage-section">
+      <div class="section-label">Frame position</div>
+      <div class="stage-row">
+        <label class="field-label">X</label>
+        <NumericInput v-model="frameX" :min="-4096" :max="4096" @blur="commitFramePos" @change="commitFramePos" />
+        <label class="field-label">Y</label>
+        <NumericInput v-model="frameY" :min="-4096" :max="4096" @blur="commitFramePos" @change="commitFramePos" />
       </div>
     </div>
 
