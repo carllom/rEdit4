@@ -163,6 +163,7 @@ describe('undo/redo round-trip for each command type', () => {
     { type: 'duration-change', frameIndex: 0, oldDuration: 100, newDuration: 200 },
     { type: 'duplicate-frame', originalIndex: 0, newFrame: frame, insertIndex: 1 },
     { type: 'stage-resize', oldWidth: 128, oldHeight: 128, newWidth: 256, newHeight: 64 },
+    { type: 'rename-animation', oldName: 'Old', newName: 'New' },
   ]
 
   for (const cmd of commands) {

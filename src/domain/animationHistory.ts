@@ -8,6 +8,7 @@ export type AnimationCommand =
   | { type: 'duration-change'; frameIndex: number; oldDuration: number; newDuration: number }
   | { type: 'duplicate-frame'; originalIndex: number; newFrame: Frame; insertIndex: number }
   | { type: 'stage-resize'; oldWidth: number; oldHeight: number; newWidth: number; newHeight: number }
+  | { type: 'rename-animation'; oldName: string; newName: string }
 
 const MAX_HISTORY = 100
 
