@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import AppButton from '../ui/AppButton.vue'
 import NumericInput from '../ui/NumericInput.vue'
 import ImagePicker from '../ui/ImagePicker.vue'
+import SpritePreview from './SpritePreview.vue'
 import { useProjectStore } from '../../stores/projectStore'
 import { useEditorStore } from '../../stores/editorStore'
 import { useSpriteHistoryStore } from '../../stores/spriteHistoryStore'
@@ -333,6 +334,8 @@ defineExpose({ removeSelectedPart })
         </div>
       </div>
     </div>
+
+    <SpritePreview :sprite-id="spriteId" />
 
     <ImagePicker
       :open="showPicker"
