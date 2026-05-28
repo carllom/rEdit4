@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import SpritePicker from './SpritePicker.vue'
 import NumericInput from '../ui/NumericInput.vue'
 import { renderSpriteThumbnail, SPRITE_THUMB_PX } from '../../renderer/spriteThumbnail'
@@ -14,6 +14,8 @@ const project = useProjectStore()
 const editor = useEditorStore()
 const animHist = useAnimationHistoryStore()
 
+const props = withDefaults(defineProps<{ isPlaying?: boolean }>(), { isPlaying: false })
+
 const stripEl = ref<HTMLElement | null>(null)
 const pickerOpen = ref(false)
 
@@ -24,6 +26,15 @@ const animation = computed(() => {
 
 const frames = computed(() => animation.value?.frames ?? [])
 const activeIndex = computed(() => editor.activeFrameIndex)
+
+// Scroll active frame cell into view during playback
+watch(activeIndex, (idx) => {
+  nextTick(() => {
+    if (!stripEl.value) return
+    const cells = stripEl.value.querySelectorAll<HTMLElement>('.frame-cell')
+    cells[idx]?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  })
+})
 
 // --- SpritePicker ---
 
@@ -123,6 +134,7 @@ const dragOverIdx = ref(-1)
 const dropIndicatorLeft = ref(-1)
 
 function onDragStart(e: PointerEvent, idx: number) {
+  if (props.isPlaying) return
   e.preventDefault()
   dragSourceIdx.value = idx
   dragOverIdx.value = idx
@@ -236,6 +248,7 @@ function mountThumbCanvas(el: HTMLCanvasElement | null, spriteId: string) {
               :model-value="frame.duration"
               :min="1"
               :max="9999"
+              :disabled="props.isPlaying"
               @update:modelValue="(v) => onDurationUpdate(idx, v)"
               @change="onDurationCommit(idx)"
               @blur="onDurationCommit(idx)"
@@ -244,6 +257,7 @@ function mountThumbCanvas(el: HTMLCanvasElement | null, spriteId: string) {
             />
             <button
               class="delete-btn"
+              :disabled="props.isPlaying"
               title="Delete frame"
               @click.stop="deleteFrame(idx)"
               @pointerdown.stop
@@ -254,7 +268,7 @@ function mountThumbCanvas(el: HTMLCanvasElement | null, spriteId: string) {
         </div>
 
         <!-- Add frame cell -->
-        <button class="add-cell" title="Add Frame" @click="openPicker">
+        <button class="add-cell" :disabled="props.isPlaying" title="Add Frame" @click="openPicker">
           <span class="add-icon">+</span>
         </button>
 

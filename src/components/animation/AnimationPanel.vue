@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import AppButton from '../ui/AppButton.vue'
 import AppDialog from '../ui/AppDialog.vue'
+import AppSelect from '../ui/AppSelect.vue'
 import ConfirmDialog from '../ui/ConfirmDialog.vue'
 import NumericInput from '../ui/NumericInput.vue'
 import { useProjectStore } from '../../stores/projectStore'
@@ -240,6 +241,20 @@ defineExpose({ animHist })
         </div>
         <button class="anim-delete" title="Delete animation" @click.stop="requestDeleteAnimation(anim.id)">×</button>
       </div>
+    </div>
+
+    <!-- Playback mode selector -->
+    <div v-if="activeAnimation" class="stage-section">
+      <div class="section-label">Playback</div>
+      <AppSelect
+        :model-value="editor.playbackMode"
+        style="width: 100%"
+        @update:modelValue="editor.setPlaybackMode($event as 'loop' | 'once' | 'pingpong')"
+      >
+        <option value="loop">Loop</option>
+        <option value="once">Once</option>
+        <option value="pingpong">Ping-pong</option>
+      </AppSelect>
     </div>
 
     <!-- Stage size inputs for active animation -->

@@ -9,6 +9,8 @@ import { ZOOM_LEVELS, fitToViewport } from '../../renderer/viewport'
 import { compositeImage } from '../../domain/color'
 import { updateFramePosition } from '../../domain/animationOps'
 
+const props = withDefaults(defineProps<{ isPlaying?: boolean }>(), { isPlaying: false })
+
 const project = useProjectStore()
 const editor = useEditorStore()
 const animHist = useAnimationHistoryStore()
@@ -346,6 +348,7 @@ function onCanvasMousedown(e: MouseEvent) {
     return
   }
   if (e.button !== 0) return
+  if (props.isPlaying) return
 
   const anim = animation.value
   const frame = activeFrame.value
@@ -401,8 +404,8 @@ function onKeydown(e: KeyboardEvent) {
   const anim = animation.value
   const frame = activeFrame.value
 
-  // Arrow key nudge on active frame position
-  if (anim && frame) {
+  // Arrow key nudge on active frame position — disabled during playback
+  if (!props.isPlaying && anim && frame) {
     const dx = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0
     const dy = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0
     if (dx !== 0 || dy !== 0) {
@@ -421,7 +424,8 @@ function onKeydown(e: KeyboardEvent) {
     }
   }
 
-  if (e.code === 'Space' && !e.repeat) { isPanMode.value = true; e.preventDefault() }
+  // Space activates pan mode only when not playing (Space = play/pause when playing)
+  if (e.code === 'Space' && !e.repeat && !props.isPlaying) { isPanMode.value = true; e.preventDefault() }
   else if (e.code === 'Home' && !e.altKey) { fitView(); e.preventDefault() }
   else if ((e.key === '=' || e.key === '+') && !e.ctrlKey && !e.metaKey) zoomIn()
   else if (e.key === '-' && !e.ctrlKey && !e.metaKey) zoomOut()

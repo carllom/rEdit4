@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import AnimationPanel from '../components/animation/AnimationPanel.vue'
 import AnimationTimeline from '../components/animation/AnimationTimeline.vue'
 import AnimationStageCanvas from '../components/animation/AnimationStageCanvas.vue'
+import AppButton from '../components/ui/AppButton.vue'
 import { useProjectStore } from '../stores/projectStore'
 import { useEditorStore } from '../stores/editorStore'
 import { useAnimationHistoryStore } from '../stores/animationHistoryStore'
@@ -14,6 +15,8 @@ const editor = useEditorStore()
 const animHist = useAnimationHistoryStore()
 
 const timelineRef = ref<InstanceType<typeof AnimationTimeline> | null>(null)
+
+// --- Undo / Redo ---
 
 function applyCmd(cmd: AnimationCommand, reverse: boolean) {
   const id = editor.activeAnimationId
@@ -100,9 +103,119 @@ function applyRedo() {
   if (cmd) applyCmd(cmd, false)
 }
 
+// --- Playback engine ---
+
+const isPlaying = ref(false)
+const pingpongDir = ref(1)  // +1 = forward, -1 = backward
+let rafId: number | null = null
+let lastTimestamp: number | null = null
+let accumulated = 0
+
+const animation = computed(() => {
+  const id = editor.activeAnimationId
+  return id ? project.getAnimation(id) : null
+})
+
+const frames = computed(() => animation.value?.frames ?? [])
+
+function advanceFrame() {
+  const fc = frames.value.length
+  if (fc === 0) { pause(); return }
+  const cur = editor.activeFrameIndex
+  const mode = editor.playbackMode
+
+  if (mode === 'loop') {
+    editor.setActiveFrameIndex((cur + 1) % fc)
+  } else if (mode === 'once') {
+    if (cur >= fc - 1) { pause(); return }
+    editor.setActiveFrameIndex(cur + 1)
+  } else { // pingpong
+    let next = cur + pingpongDir.value
+    if (next >= fc) {
+      pingpongDir.value = -1
+      next = Math.max(0, fc - 2)
+    } else if (next < 0) {
+      pingpongDir.value = 1
+      next = Math.min(fc - 1, 1)
+    }
+    editor.setActiveFrameIndex(next)
+  }
+}
+
+function tick(ts: number) {
+  if (!isPlaying.value) return
+  if (frames.value.length === 0) { pause(); return }
+
+  if (lastTimestamp !== null) {
+    accumulated += ts - lastTimestamp
+    let safety = 0
+    while (isPlaying.value && safety++ < 100) {
+      const dur = frames.value[editor.activeFrameIndex]?.duration ?? 100
+      if (accumulated < dur) break
+      accumulated -= dur
+      advanceFrame()
+    }
+  }
+
+  lastTimestamp = ts
+  if (isPlaying.value) rafId = requestAnimationFrame(tick)
+}
+
+function play() {
+  if (isPlaying.value) return
+  if (frames.value.length === 0) return
+  isPlaying.value = true
+  lastTimestamp = null
+  accumulated = 0
+  rafId = requestAnimationFrame(tick)
+}
+
+function pause() {
+  isPlaying.value = false
+  if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null }
+  lastTimestamp = null
+  accumulated = 0
+}
+
+function togglePlay() {
+  if (isPlaying.value) pause()
+  else play()
+}
+
+function stepBack() {
+  if (isPlaying.value) pause()
+  const fc = frames.value.length
+  if (fc === 0) return
+  editor.setActiveFrameIndex((editor.activeFrameIndex - 1 + fc) % fc)
+}
+
+function stepForward() {
+  if (isPlaying.value) pause()
+  const fc = frames.value.length
+  if (fc === 0) return
+  editor.setActiveFrameIndex((editor.activeFrameIndex + 1) % fc)
+}
+
+// Pause and reset direction when switching animations
+watch(() => editor.activeAnimationId, () => {
+  pause()
+  pingpongDir.value = 1
+})
+
+// --- Keyboard ---
+
 function onKeydown(e: KeyboardEvent) {
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
 
+  if (e.code === 'Space' && !e.repeat) {
+    e.preventDefault(); togglePlay(); return
+  }
+  if (e.key === ',' && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault(); stepBack(); return
+  }
+  if (e.key === '.' && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault(); stepForward(); return
+  }
   if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
     e.preventDefault(); applyUndo(); return
   }
@@ -110,16 +223,28 @@ function onKeydown(e: KeyboardEvent) {
       (e.key === 'z' && (e.ctrlKey || e.metaKey) && e.shiftKey)) {
     e.preventDefault(); applyRedo(); return
   }
-  if (e.key === 'Delete' && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+  if (e.key === 'Delete' && !isPlaying.value && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
     e.preventDefault(); timelineRef.value?.deleteActiveFrame(); return
   }
-  if (e.key === 'd' && (e.ctrlKey || e.metaKey)) {
+  if (e.key === 'd' && (e.ctrlKey || e.metaKey) && !isPlaying.value) {
     e.preventDefault(); timelineRef.value?.duplicateActiveFrame(); return
   }
 }
 
-onMounted(() => window.addEventListener('keydown', onKeydown))
-onUnmounted(() => window.removeEventListener('keydown', onKeydown))
+function onVisibilityChange() {
+  if (document.hidden) pause()
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', onKeydown)
+  document.addEventListener('visibilitychange', onVisibilityChange)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', onKeydown)
+  document.removeEventListener('visibilitychange', onVisibilityChange)
+  pause()
+})
 </script>
 
 <template>
@@ -129,10 +254,21 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 
     <div class="main-area">
       <div class="stage-area">
-        <AnimationStageCanvas />
+        <AnimationStageCanvas :is-playing="isPlaying" />
+      </div>
+      <div class="playback-toolbar">
+        <AppButton
+          size="compact"
+          :variant="isPlaying ? 'accent' : 'default'"
+          :disabled="frames.length === 0"
+          @click="togglePlay"
+        >{{ isPlaying ? '⏸' : '▶' }}</AppButton>
+        <span v-if="frames.length > 0" class="frame-counter">
+          {{ editor.activeFrameIndex + 1 }} / {{ frames.length }}
+        </span>
       </div>
       <div class="timeline-area">
-        <AnimationTimeline ref="timelineRef" />
+        <AnimationTimeline ref="timelineRef" :is-playing="isPlaying" />
       </div>
     </div>
 
@@ -161,15 +297,30 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
   align-items: stretch;
   overflow: hidden;
   background: var(--rd-color-surface-0, var(--rd-color-surface-1));
+}
+
+.playback-toolbar {
+  height: var(--rd-hit-md);
+  flex-shrink: 0;
+  background: var(--rd-color-surface-1);
+  border-top: var(--rd-border-w) solid var(--rd-color-border);
   border-bottom: var(--rd-border-w) solid var(--rd-color-border);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--rd-space-4);
+  gap: var(--rd-space-3);
+}
+
+.frame-counter {
+  font-size: var(--rd-text-11);
+  color: var(--rd-color-text-muted);
+  font-family: var(--rd-font-mono);
 }
 
 .timeline-area {
   height: 120px;
   flex-shrink: 0;
   background: var(--rd-color-surface-1);
-  border-top: var(--rd-border-w) solid var(--rd-color-border);
   overflow: hidden;
 }
-
 </style>
