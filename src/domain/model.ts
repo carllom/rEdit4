@@ -73,6 +73,7 @@ export interface Sprite {
 }
 
 export interface Frame {
+  id: string
   spriteId: string
   position: Point
   duration: number  // milliseconds
@@ -81,6 +82,8 @@ export interface Frame {
 export interface Animation {
   id: string
   name: string
+  width: number   // stage width in pixels
+  height: number  // stage height in pixels
   frames: Frame[]
 }
 

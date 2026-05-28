@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Project, ReImage, Palette, Sprite } from '../domain/model'
+import type { Project, ReImage, Palette, Sprite, Animation } from '../domain/model'
 import { uid, makePalette, makeImage } from '../domain/color'
 import { clonePalette } from '../domain/paletteOps'
 import { canRemoveImage } from '../domain/spriteOps'
@@ -100,8 +100,36 @@ export const useProjectStore = defineStore('project', () => {
     return project.value?.sprites.find(s => s.id === id)
   }
 
+  function addAnimation(name = 'Animation', width = 128, height = 128): Animation | null {
+    if (!project.value) return null
+    const animation: Animation = { id: uid(), name, width, height, frames: [] }
+    project.value.animations.push(animation)
+    isDirty.value = true
+    return animation
+  }
+
+  function removeAnimation(id: string): void {
+    if (!project.value) return
+    const idx = project.value.animations.findIndex(a => a.id === id)
+    if (idx === -1) return
+    project.value.animations.splice(idx, 1)
+    isDirty.value = true
+  }
+
+  function getAnimation(id: string): Animation | undefined {
+    return project.value?.animations.find(a => a.id === id)
+  }
+
+  function updateAnimation(id: string, patch: Partial<Pick<Animation, 'name' | 'frames' | 'width' | 'height'>>): void {
+    if (!project.value) return
+    const idx = project.value.animations.findIndex(a => a.id === id)
+    if (idx === -1) return
+    project.value.animations[idx] = { ...project.value.animations[idx], ...patch }
+    isDirty.value = true
+  }
+
   function markDirty() { isDirty.value = true }
   function markClean() { isDirty.value = false }
 
-  return { project, isDirty, hasProject, newProject, addImage, removeImage, getPalette, getImage, reorderLayer, appendImages, appendPalettes, addSprite, removeSprite, getSprite, markDirty, markClean }
+  return { project, isDirty, hasProject, newProject, addImage, removeImage, getPalette, getImage, reorderLayer, appendImages, appendPalettes, addSprite, removeSprite, getSprite, addAnimation, removeAnimation, getAnimation, updateAnimation, markDirty, markClean }
 })

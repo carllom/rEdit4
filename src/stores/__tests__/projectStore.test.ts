@@ -381,6 +381,158 @@ describe('getSprite', () => {
   })
 })
 
+describe('addAnimation', () => {
+  it('returns null when no project is open', () => {
+    expect(useProjectStore().addAnimation()).toBeNull()
+  })
+
+  it('adds an Animation and returns it', () => {
+    const store = useProjectStore()
+    store.newProject()
+    const anim = store.addAnimation('Walk')
+    expect(store.project?.animations).toHaveLength(1)
+    expect(anim?.name).toBe('Walk')
+  })
+
+  it('new Animation has the given width and height', () => {
+    const store = useProjectStore()
+    store.newProject()
+    const anim = store.addAnimation('Run', 200, 100)!
+    expect(anim.width).toBe(200)
+    expect(anim.height).toBe(100)
+  })
+
+  it('new Animation has an empty frames list', () => {
+    const store = useProjectStore()
+    store.newProject()
+    const anim = store.addAnimation()!
+    expect(anim.frames).toHaveLength(0)
+  })
+
+  it('new Animation has a non-empty id', () => {
+    const store = useProjectStore()
+    store.newProject()
+    expect(store.addAnimation()?.id).toBeTruthy()
+  })
+
+  it('marks the project dirty', () => {
+    const store = useProjectStore()
+    store.newProject()
+    store.markClean()
+    store.addAnimation()
+    expect(store.isDirty).toBe(true)
+  })
+
+  it('multiple animations accumulate', () => {
+    const store = useProjectStore()
+    store.newProject()
+    store.addAnimation('A')
+    store.addAnimation('B')
+    expect(store.project?.animations).toHaveLength(2)
+  })
+})
+
+describe('removeAnimation', () => {
+  it('does nothing when no project is open', () => {
+    expect(() => useProjectStore().removeAnimation('anim-x')).not.toThrow()
+  })
+
+  it('removes the Animation with the matching id', () => {
+    const store = useProjectStore()
+    store.newProject()
+    const anim = store.addAnimation()!
+    store.removeAnimation(anim.id)
+    expect(store.project?.animations).toHaveLength(0)
+  })
+
+  it('leaves other Animations intact', () => {
+    const store = useProjectStore()
+    store.newProject()
+    const a = store.addAnimation('A')!
+    const b = store.addAnimation('B')!
+    store.removeAnimation(a.id)
+    expect(store.project?.animations).toHaveLength(1)
+    expect(store.project?.animations[0].id).toBe(b.id)
+  })
+
+  it('marks the project dirty', () => {
+    const store = useProjectStore()
+    store.newProject()
+    const anim = store.addAnimation()!
+    store.markClean()
+    store.removeAnimation(anim.id)
+    expect(store.isDirty).toBe(true)
+  })
+
+  it('is a no-op for a non-existent id (does not mark dirty)', () => {
+    const store = useProjectStore()
+    store.newProject()
+    store.markClean()
+    store.removeAnimation('nonexistent')
+    expect(store.isDirty).toBe(false)
+    expect(store.project?.animations).toHaveLength(0)
+  })
+})
+
+describe('getAnimation', () => {
+  it('returns undefined when no project is open', () => {
+    expect(useProjectStore().getAnimation('anim-1')).toBeUndefined()
+  })
+
+  it('returns the Animation with the matching id', () => {
+    const store = useProjectStore()
+    store.newProject()
+    const anim = store.addAnimation()!
+    expect(store.getAnimation(anim.id)?.id).toBe(anim.id)
+  })
+
+  it('returns undefined for an unknown id', () => {
+    const store = useProjectStore()
+    store.newProject()
+    expect(store.getAnimation('nonexistent')).toBeUndefined()
+  })
+})
+
+describe('updateAnimation', () => {
+  it('does nothing when no project is open', () => {
+    expect(() => useProjectStore().updateAnimation('anim-x', { name: 'New' })).not.toThrow()
+  })
+
+  it('updates the name of the Animation', () => {
+    const store = useProjectStore()
+    store.newProject()
+    const anim = store.addAnimation('Old')!
+    store.updateAnimation(anim.id, { name: 'New' })
+    expect(store.getAnimation(anim.id)?.name).toBe('New')
+  })
+
+  it('updates width and height', () => {
+    const store = useProjectStore()
+    store.newProject()
+    const anim = store.addAnimation('A', 128, 128)!
+    store.updateAnimation(anim.id, { width: 256, height: 64 })
+    expect(store.getAnimation(anim.id)?.width).toBe(256)
+    expect(store.getAnimation(anim.id)?.height).toBe(64)
+  })
+
+  it('marks the project dirty', () => {
+    const store = useProjectStore()
+    store.newProject()
+    const anim = store.addAnimation()!
+    store.markClean()
+    store.updateAnimation(anim.id, { name: 'Changed' })
+    expect(store.isDirty).toBe(true)
+  })
+
+  it('is a no-op for a non-existent id (does not mark dirty)', () => {
+    const store = useProjectStore()
+    store.newProject()
+    store.markClean()
+    store.updateAnimation('nonexistent', { name: 'X' })
+    expect(store.isDirty).toBe(false)
+  })
+})
+
 describe('markDirty / markClean', () => {
   it('markDirty sets isDirty to true', () => {
     const store = useProjectStore()

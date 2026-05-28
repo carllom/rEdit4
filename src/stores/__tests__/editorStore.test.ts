@@ -111,6 +111,136 @@ describe('setActivePartIndex', () => {
   })
 })
 
+describe('setActiveAnimation', () => {
+  it('sets activeAnimationId', () => {
+    const store = useEditorStore()
+    store.setActiveAnimation('anim-1')
+    expect(store.activeAnimationId).toBe('anim-1')
+  })
+
+  it('resets activeFrameIndex to 0', () => {
+    const store = useEditorStore()
+    store.setActiveFrameIndex(5)
+    store.setActiveAnimation('anim-1')
+    expect(store.activeFrameIndex).toBe(0)
+  })
+
+  it('accepts null to deselect', () => {
+    const store = useEditorStore()
+    store.setActiveAnimation('anim-1')
+    store.setActiveAnimation(null)
+    expect(store.activeAnimationId).toBeNull()
+  })
+})
+
+describe('setActiveFrameIndex', () => {
+  it('sets activeFrameIndex', () => {
+    const store = useEditorStore()
+    store.setActiveFrameIndex(3)
+    expect(store.activeFrameIndex).toBe(3)
+  })
+
+  it('default activeFrameIndex is 0', () => {
+    expect(useEditorStore().activeFrameIndex).toBe(0)
+  })
+})
+
+describe('clampFrameIndex', () => {
+  it('clamps to frameCount - 1 when index is out of range', () => {
+    const store = useEditorStore()
+    store.setActiveFrameIndex(4)
+    store.clampFrameIndex(3)
+    expect(store.activeFrameIndex).toBe(2)
+  })
+
+  it('does not change index when it is still in range', () => {
+    const store = useEditorStore()
+    store.setActiveFrameIndex(1)
+    store.clampFrameIndex(3)
+    expect(store.activeFrameIndex).toBe(1)
+  })
+
+  it('sets index to 0 when frameCount is 0', () => {
+    const store = useEditorStore()
+    store.setActiveFrameIndex(3)
+    store.clampFrameIndex(0)
+    expect(store.activeFrameIndex).toBe(0)
+  })
+})
+
+describe('onion skin and playback defaults', () => {
+  it('onionSkinEnabled defaults to false', () => {
+    expect(useEditorStore().onionSkinEnabled).toBe(false)
+  })
+
+  it('onionSkinBefore defaults to 1', () => {
+    expect(useEditorStore().onionSkinBefore).toBe(1)
+  })
+
+  it('onionSkinAfter defaults to 1', () => {
+    expect(useEditorStore().onionSkinAfter).toBe(1)
+  })
+
+  it('playbackMode defaults to loop', () => {
+    expect(useEditorStore().playbackMode).toBe('loop')
+  })
+})
+
+describe('onion skin setters', () => {
+  it('setOnionSkinEnabled toggles the flag', () => {
+    const store = useEditorStore()
+    store.setOnionSkinEnabled(true)
+    expect(store.onionSkinEnabled).toBe(true)
+    store.setOnionSkinEnabled(false)
+    expect(store.onionSkinEnabled).toBe(false)
+  })
+
+  it('setOnionSkinBefore accepts values 1–3', () => {
+    const store = useEditorStore()
+    store.setOnionSkinBefore(2)
+    expect(store.onionSkinBefore).toBe(2)
+  })
+
+  it('setOnionSkinBefore clamps below 1', () => {
+    const store = useEditorStore()
+    store.setOnionSkinBefore(0)
+    expect(store.onionSkinBefore).toBe(1)
+  })
+
+  it('setOnionSkinBefore clamps above 3', () => {
+    const store = useEditorStore()
+    store.setOnionSkinBefore(5)
+    expect(store.onionSkinBefore).toBe(3)
+  })
+
+  it('setOnionSkinAfter clamps above 3', () => {
+    const store = useEditorStore()
+    store.setOnionSkinAfter(10)
+    expect(store.onionSkinAfter).toBe(3)
+  })
+})
+
+describe('setPlaybackMode', () => {
+  it('sets playbackMode to once', () => {
+    const store = useEditorStore()
+    store.setPlaybackMode('once')
+    expect(store.playbackMode).toBe('once')
+  })
+
+  it('sets playbackMode to pingpong', () => {
+    const store = useEditorStore()
+    store.setPlaybackMode('pingpong')
+    expect(store.playbackMode).toBe('pingpong')
+  })
+
+  it('sets playbackMode back to loop', () => {
+    const store = useEditorStore()
+    store.setPlaybackMode('once')
+    store.setPlaybackMode('loop')
+    expect(store.playbackMode).toBe('loop')
+  })
+})
+
 describe('clearActiveImage', () => {
   it('nulls imageId, layerId, and paletteId', () => {
     const store = useEditorStore()
