@@ -125,7 +125,31 @@ The same block-with-message policy applies to deleting a Sprite referenced by An
 
 ## Animation
 
-An ordered sequence of Frames. Each Frame references a Sprite, a position, and a duration (ms).
+A named sequence of Frames played against a fixed-size Stage. Has a declared `width × height`
+(the Stage dimensions), set at creation and editable later. An ordered list of Frames defines
+the content and timing.
+
+### Animation Stage
+
+The fixed-size canvas (`width × height`) defined per-Animation. All Frame Sprites are positioned
+within this coordinate space. The Stage dimensions are set when the Animation is created and can
+be resized later (no pixel data to remap; Sprites positioned outside the new bounds remain valid
+but are clipped during playback and export).
+_Avoid_: animation canvas, animation viewport
+
+### Playhead
+
+The timeline cursor indicating the currently active Frame during editing and playback. Clicking
+a Frame cell in the timeline moves the Playhead to that Frame and shows it on the Stage canvas.
+During playback the Playhead advances automatically.
+
+### Onion Skin
+
+A ghost rendering of frames adjacent to the active Frame, shown on the Stage canvas to aid
+motion continuity. Previous frames are tinted one color (e.g. red), next frames another
+(e.g. blue), at decreasing opacity with distance. Count (1–3 before, 1–3 after) is
+user-configurable per session. Toggled via a toolbar button; off by default.
+_Avoid_: onion skinning (use Onion Skin as the noun)
 
 ## Sheet
 

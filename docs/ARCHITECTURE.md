@@ -455,10 +455,10 @@ Alongside the PNG, generate a CSS file with `background-position` classes per sp
 - ✓ Flash Card Preview: Backquote key hold → composited image centered overlay (configurable background, per-image session zoom)
 - ✓ Tool variants: Draw (Connected, Pixel-perfect, Bezier), Erase (Normal, Clear), Fill (Flood, Replace), Rectangle (Filled, Outline), Ellipse (Filled, Outline) — variant buttons in sub-row below main tool selector; cycle via re-click or keyboard shortcut _verified_
 
-### Phase 2 — Sprite Editor
-- Compose images into sprites
-- Set anchor point
-- Sprite preview at 1× and 2×
+### Phase 2 — Sprite Editor ✓ complete
+- ✓ Compose images into sprites
+- ✓ Set anchor point
+- ✓ Sprite preview at 1× and 2×
 
 ### Phase 3 — Animation Editor
 - Frame timeline, add/remove/reorder frames
