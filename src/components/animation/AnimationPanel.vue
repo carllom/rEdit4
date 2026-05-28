@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, toRaw } from 'vue'
 import AppButton from '../ui/AppButton.vue'
 import AppDialog from '../ui/AppDialog.vue'
 import AppSelect from '../ui/AppSelect.vue'
@@ -9,6 +9,7 @@ import { useProjectStore } from '../../stores/projectStore'
 import { useEditorStore } from '../../stores/editorStore'
 import { useAnimationHistoryStore } from '../../stores/animationHistoryStore'
 import { updateFramePosition } from '../../domain/animationOps'
+import { exportPNGSequence } from '../../renderer/animationExporter'
 import type { Point } from '../../domain/model'
 
 const project = useProjectStore()
@@ -204,6 +205,27 @@ const onionAfter = computed({
   set(v: number) { editor.setOnionSkinAfter(v) },
 })
 
+// --- PNG sequence export ---
+const isExporting = ref(false)
+
+async function doExport() {
+  const anim = activeAnimation.value
+  if (!anim || anim.frames.length === 0 || isExporting.value) return
+  const proj = project.project
+  if (!proj) return
+
+  const spriteMap = new Map(proj.sprites.map(s => [s.id, toRaw(s)]))
+  const imgMap = new Map(proj.images.map(img => [img.id, toRaw(img)]))
+  const palMap = new Map(proj.palettes.map(p => [p.id, toRaw(p)]))
+
+  isExporting.value = true
+  try {
+    await exportPNGSequence(toRaw(anim), spriteMap, imgMap, palMap)
+  } finally {
+    isExporting.value = false
+  }
+}
+
 // --- Expose for parent undo/redo row ---
 defineExpose({ animHist })
 </script>
@@ -304,6 +326,16 @@ defineExpose({ animHist })
     <div v-if="editor.activeAnimationId" class="undo-row">
       <AppButton size="compact" variant="ghost" :disabled="!animHist.canUndo" @click="$emit('undo')">↩ Undo</AppButton>
       <AppButton size="compact" variant="ghost" :disabled="!animHist.canRedo" @click="$emit('redo')">↪ Redo</AppButton>
+    </div>
+
+    <!-- Export -->
+    <div v-if="activeAnimation" class="export-row">
+      <AppButton
+        size="compact"
+        variant="ghost"
+        :disabled="!activeAnimation.frames.length || isExporting"
+        @click="doExport"
+      >Export PNG Sequence</AppButton>
     </div>
 
   </aside>
@@ -512,6 +544,17 @@ defineExpose({ animHist })
   padding: var(--rd-space-3) var(--rd-space-4);
   border-top: var(--rd-border-w) solid var(--rd-color-border);
   flex-shrink: 0;
+}
+
+/* Export row */
+.export-row {
+  padding: var(--rd-space-3) var(--rd-space-4);
+  border-top: var(--rd-border-w) solid var(--rd-color-border);
+  flex-shrink: 0;
+}
+
+.export-row .btn {
+  width: 100%;
 }
 
 /* Dialog fields */

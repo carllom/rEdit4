@@ -461,10 +461,10 @@ Alongside the PNG, generate a CSS file with `background-position` classes per sp
 - ✓ Sprite preview at 1× and 2×
 
 ### Phase 3 — Animation Editor
-- Frame timeline, add/remove/reorder frames
-- Per-frame sprite + position + duration
-- Preview playback
-- Onion skinning
+- ✓ Frame timeline, add/remove/reorder frames
+- ✓ Per-frame sprite + position + duration
+- ✓ Preview playback
+- ✓ Onion skinning
 
 ### Phase 4 — Sheet Editor
 - ✓ Import PNG → slice into named entries
