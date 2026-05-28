@@ -3,7 +3,9 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import type { Point, ReImage, Palette } from '../../domain/model'
 import { useProjectStore } from '../../stores/projectStore'
 import { useEditorStore } from '../../stores/editorStore'
+import { useSpriteHistoryStore } from '../../stores/spriteHistoryStore'
 import { renderSprite, hitTestParts, fitSpriteToView } from '../../renderer/spriteRenderer'
+import { movePart } from '../../domain/spriteOps'
 import { ZOOM_LEVELS } from '../../renderer/viewport'
 import type { ViewportState } from '../../stores/paintStore'
 
@@ -12,6 +14,7 @@ const emit = defineEmits<{ partSelected: [index: number | null] }>()
 
 const project = useProjectStore()
 const editor = useEditorStore()
+const spriteHist = useSpriteHistoryStore()
 
 const sprite = computed(() => project.getSprite(props.spriteId))
 
@@ -70,7 +73,6 @@ function redraw() {
     editor.activePartIndex)
 }
 
-// Expose so parent can request a redraw after mutations
 defineExpose({ requestRedraw: redraw })
 
 watch(
@@ -120,13 +122,24 @@ function fitView() {
   setVp(z, pan)
 }
 
+// --- Viewport helpers ---
+function screenToSprite(sx: number, sy: number): Point {
+  return { x: sx / zoom.value + panOffset.value.x, y: sy / zoom.value + panOffset.value.y }
+}
+
+function isNearAnchor(sx: number, sy: number): boolean {
+  const spr = sprite.value
+  if (!spr) return false
+  const ax = (spr.anchor.x - panOffset.value.x) * zoom.value
+  const ay = (spr.anchor.y - panOffset.value.y) * zoom.value
+  return Math.hypot(sx - ax, sy - ay) < 8
+}
+
 // --- Zoom ---
 function applyZoom(newZoom: number, cx: number, cy: number) {
   const old = zoom.value
   const pan = panOffset.value
-  const pixX = cx / old + pan.x
-  const pixY = cy / old + pan.y
-  setVp(newZoom, { x: pixX - cx / newZoom, y: pixY - cy / newZoom })
+  setVp(newZoom, { x: cx / old + pan.x - cx / newZoom, y: cy / old + pan.y - cy / newZoom })
 }
 function zoomIn(cx = viewW.value / 2, cy = viewH.value / 2) {
   const idx = ZOOM_LEVELS.indexOf(zoom.value)
@@ -136,7 +149,6 @@ function zoomOut(cx = viewW.value / 2, cy = viewH.value / 2) {
   const idx = ZOOM_LEVELS.indexOf(zoom.value)
   if (idx > 0) applyZoom(ZOOM_LEVELS[idx - 1], cx, cy)
 }
-
 function onWheel(e: WheelEvent) {
   e.preventDefault()
   if (e.deltaY < 0) zoomIn(e.offsetX, e.offsetY)
@@ -147,48 +159,134 @@ function onWheel(e: WheelEvent) {
 const isPanMode = ref(false)
 const isPanning = ref(false)
 let panStart = { x: 0, y: 0 }
-let panAnchor: Point = { x: 0, y: 0 }
+let panAnchorPt: Point = { x: 0, y: 0 }
 
 function startPan(sx: number, sy: number) {
   isPanning.value = true
   panStart = { x: sx, y: sy }
-  panAnchor = { ...panOffset.value }
+  panAnchorPt = { ...panOffset.value }
 }
 function updatePan(sx: number, sy: number) {
   if (!isPanning.value) return
   setVp(zoom.value, {
-    x: panAnchor.x + (panStart.x - sx) / zoom.value,
-    y: panAnchor.y + (panStart.y - sy) / zoom.value,
+    x: panAnchorPt.x + (panStart.x - sx) / zoom.value,
+    y: panAnchorPt.y + (panStart.y - sy) / zoom.value,
   })
 }
 function stopPan() { isPanning.value = false }
 
-function onGlobalMousemove(e: MouseEvent) { updatePan(e.clientX, e.clientY) }
-function onGlobalMouseup(e: MouseEvent) { if (e.button === 0 || e.button === 1) stopPan() }
+// --- Drag state ---
+type DragState =
+  | { kind: 'part'; idx: number; grabOffset: Point }
+  | { kind: 'anchor'; grabOffset: Point }
 
-// --- Click to select part ---
+let drag: DragState | null = null
+const isDragging = ref(false)
+
+// --- Mouse events ---
 function onCanvasMousedown(e: MouseEvent) {
   if (e.button === 1 || (e.button === 0 && isPanMode.value)) {
     e.preventDefault()
     startPan(e.clientX, e.clientY)
     return
   }
-  if (e.button === 0) {
-    const rect = canvas.value!.getBoundingClientRect()
-    const sx = e.clientX - rect.left
-    const sy = e.clientY - rect.top
-    const spX = sx / zoom.value + panOffset.value.x
-    const spY = sy / zoom.value + panOffset.value.y
-    const spr = sprite.value
-    if (!spr) return
-    const hit = hitTestParts(spr.parts, imgMap.value, palMap.value, spX, spY)
-    emit('partSelected', hit >= 0 ? hit : null)
+  if (e.button !== 0) return
+
+  const rect = canvas.value!.getBoundingClientRect()
+  const sx = e.clientX - rect.left
+  const sy = e.clientY - rect.top
+  const spr = sprite.value
+  if (!spr) return
+
+  // Anchor drag takes priority over part drag
+  if (isNearAnchor(sx, sy)) {
+    const sp = screenToSprite(sx, sy)
+    spriteHist.beginAnchorDrag(props.spriteId, spr.anchor)
+    drag = { kind: 'anchor', grabOffset: { x: sp.x - spr.anchor.x, y: sp.y - spr.anchor.y } }
+    isDragging.value = true
+    return
+  }
+
+  // Part hit test
+  const sp = screenToSprite(sx, sy)
+  const hit = hitTestParts(spr.parts, imgMap.value, palMap.value, sp.x, sp.y)
+  if (hit >= 0) {
+    emit('partSelected', hit)
+    const partPos = spr.parts[hit].position
+    spriteHist.beginPartDrag(props.spriteId, hit, partPos)
+    drag = { kind: 'part', idx: hit, grabOffset: { x: sp.x - partPos.x, y: sp.y - partPos.y } }
+    isDragging.value = true
+  } else {
+    emit('partSelected', null)
   }
 }
 
-// --- Keyboard (viewport only — Delete/Undo are in SpriteEditorView) ---
+function onGlobalMousemove(e: MouseEvent) {
+  updatePan(e.clientX, e.clientY)
+  if (!drag) return
+  const spr = sprite.value
+  if (!spr) return
+  const rect = canvas.value?.getBoundingClientRect()
+  if (!rect) return
+
+  const sx = e.clientX - rect.left
+  const sy = e.clientY - rect.top
+  const sp = screenToSprite(sx, sy)
+
+  if (drag.kind === 'part') {
+    const newPos = {
+      x: Math.round(sp.x - drag.grabOffset.x),
+      y: Math.round(sp.y - drag.grabOffset.y),
+    }
+    spr.parts = movePart(spr.parts, drag.idx, newPos)
+    project.markDirty()
+  } else {
+    spr.anchor = {
+      x: Math.round(sp.x - drag.grabOffset.x),
+      y: Math.round(sp.y - drag.grabOffset.y),
+    }
+    project.markDirty()
+  }
+}
+
+function onGlobalMouseup(e: MouseEvent) {
+  if (e.button === 0 || e.button === 1) {
+    stopPan()
+    if (drag) {
+      const spr = sprite.value
+      if (spr) {
+        const finalVal = drag.kind === 'part'
+          ? { ...(spr.parts[drag.idx]?.position ?? { x: 0, y: 0 }) }
+          : { ...spr.anchor }
+        spriteHist.commitDrag(props.spriteId, finalVal)
+      }
+      drag = null
+      isDragging.value = false
+    }
+  }
+}
+
+// --- Keyboard ---
 function onKeydown(e: KeyboardEvent) {
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+
+  // Arrow key nudge for selected part
+  const idx = editor.activePartIndex
+  const spr = sprite.value
+  if (idx !== null && spr && spr.parts[idx]) {
+    const dx = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0
+    const dy = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0
+    if (dx !== 0 || dy !== 0) {
+      e.preventDefault()
+      const oldPos = { ...spr.parts[idx].position }
+      const newPos = { x: oldPos.x + dx, y: oldPos.y + dy }
+      spr.parts = movePart(spr.parts, idx, newPos)
+      spriteHist.push(props.spriteId, { type: 'move-part', partIndex: idx, oldPosition: oldPos, newPosition: newPos })
+      project.markDirty()
+      return
+    }
+  }
+
   if (e.code === 'Space' && !e.repeat) { isPanMode.value = true; e.preventDefault() }
   else if (e.code === 'Home' && !e.altKey) { fitView(); e.preventDefault() }
   else if ((e.key === '=' || e.key === '+') && !e.ctrlKey && !e.metaKey) zoomIn()
@@ -197,13 +295,19 @@ function onKeydown(e: KeyboardEvent) {
 function onKeyup(e: KeyboardEvent) {
   if (e.code === 'Space') { isPanMode.value = false; if (isPanning.value) stopPan() }
 }
+
+const activeCursor = computed(() => {
+  if (isPanMode.value) return isPanning.value ? 'grabbing' : 'grab'
+  if (isDragging.value) return 'move'
+  return 'crosshair'
+})
 </script>
 
 <template>
   <div
     ref="container"
     class="sprite-canvas-container"
-    :style="{ cursor: isPanMode ? (isPanning ? 'grabbing' : 'grab') : 'crosshair' }"
+    :style="{ cursor: activeCursor }"
   >
     <canvas
       ref="canvas"
@@ -214,7 +318,11 @@ function onKeyup(e: KeyboardEvent) {
     />
     <div class="statusbar">
       zoom: {{ zoom }}×
-      &nbsp;|&nbsp; origin (0,0) &nbsp;|&nbsp; anchor ({{ sprite?.anchor.x }}, {{ sprite?.anchor.y }})
+      &nbsp;|&nbsp; origin (0,0)
+      &nbsp;|&nbsp; anchor ({{ sprite?.anchor.x ?? 0 }}, {{ sprite?.anchor.y ?? 0 }})
+      <template v-if="editor.activePartIndex !== null && sprite?.parts[editor.activePartIndex]">
+        &nbsp;|&nbsp; part ({{ sprite.parts[editor.activePartIndex].position.x }}, {{ sprite.parts[editor.activePartIndex].position.y }})
+      </template>
     </div>
   </div>
 </template>

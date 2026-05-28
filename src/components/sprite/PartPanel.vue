@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import AppButton from '../ui/AppButton.vue'
 import NumericInput from '../ui/NumericInput.vue'
 import ImagePicker from '../ui/ImagePicker.vue'
 import { useProjectStore } from '../../stores/projectStore'
 import { useEditorStore } from '../../stores/editorStore'
 import { useSpriteHistoryStore } from '../../stores/spriteHistoryStore'
-import { addPart, removePart, reorderPart, renamePart, renameSprite } from '../../domain/spriteOps'
+import { addPart, removePart, reorderPart, renamePart, movePart } from '../../domain/spriteOps'
+import type { Point } from '../../domain/model'
 
 const props = defineProps<{ spriteId: string }>()
 
@@ -16,6 +17,12 @@ const spriteHist = useSpriteHistoryStore()
 
 const sprite = computed(() => project.getSprite(props.spriteId))
 const parts = computed(() => sprite.value?.parts ?? [])
+
+const selectedPart = computed(() => {
+  const idx = editor.activePartIndex
+  if (idx === null || !sprite.value) return null
+  return sprite.value.parts[idx] ?? null
+})
 
 const imgNameMap = computed(() => {
   const m = new Map<string, string>()
@@ -67,6 +74,79 @@ function commitRenamePart() {
   spriteHist.push(props.spriteId, { type: 'rename-part', partIndex: idx, oldName, newName })
   spr.parts = renamePart(spr.parts, idx, newName)
   project.markDirty()
+}
+
+// --- Part position ---
+const partPosBefore = ref<Point | null>(null)
+
+watch(() => editor.activePartIndex, () => { partPosBefore.value = null })
+
+const partX = computed({
+  get() { return selectedPart.value?.position.x ?? 0 },
+  set(v: number) {
+    const idx = editor.activePartIndex
+    const spr = sprite.value
+    if (idx === null || !spr || !spr.parts[idx]) return
+    if (partPosBefore.value === null) partPosBefore.value = { ...spr.parts[idx].position }
+    spr.parts = movePart(spr.parts, idx, { x: v, y: spr.parts[idx].position.y })
+    project.markDirty()
+  },
+})
+const partY = computed({
+  get() { return selectedPart.value?.position.y ?? 0 },
+  set(v: number) {
+    const idx = editor.activePartIndex
+    const spr = sprite.value
+    if (idx === null || !spr || !spr.parts[idx]) return
+    if (partPosBefore.value === null) partPosBefore.value = { ...spr.parts[idx].position }
+    spr.parts = movePart(spr.parts, idx, { x: spr.parts[idx].position.x, y: v })
+    project.markDirty()
+  },
+})
+
+function commitPartPos() {
+  const idx = editor.activePartIndex
+  const spr = sprite.value
+  const before = partPosBefore.value
+  partPosBefore.value = null
+  if (before === null || idx === null || !spr || !spr.parts[idx]) return
+  const newPosition = { ...spr.parts[idx].position }
+  if (before.x === newPosition.x && before.y === newPosition.y) return
+  spriteHist.push(props.spriteId, { type: 'move-part', partIndex: idx, oldPosition: before, newPosition })
+}
+
+// --- Anchor position ---
+const anchorPosBefore = ref<Point | null>(null)
+
+const anchorX = computed({
+  get() { return sprite.value?.anchor.x ?? 0 },
+  set(v: number) {
+    const spr = sprite.value
+    if (!spr) return
+    if (anchorPosBefore.value === null) anchorPosBefore.value = { ...spr.anchor }
+    spr.anchor = { x: v, y: spr.anchor.y }
+    project.markDirty()
+  },
+})
+const anchorY = computed({
+  get() { return sprite.value?.anchor.y ?? 0 },
+  set(v: number) {
+    const spr = sprite.value
+    if (!spr) return
+    if (anchorPosBefore.value === null) anchorPosBefore.value = { ...spr.anchor }
+    spr.anchor = { x: spr.anchor.x, y: v }
+    project.markDirty()
+  },
+})
+
+function commitAnchorPos() {
+  const spr = sprite.value
+  const before = anchorPosBefore.value
+  anchorPosBefore.value = null
+  if (before === null || !spr) return
+  const newAnchor = { ...spr.anchor }
+  if (before.x === newAnchor.x && before.y === newAnchor.y) return
+  spriteHist.push(props.spriteId, { type: 'move-anchor', oldAnchor: before, newAnchor })
 }
 
 // --- Add Part ---
@@ -163,14 +243,53 @@ defineExpose({ removeSelectedPart })
       </div>
     </div>
 
-    <!-- Anchor coords (read-only) -->
+    <!-- Anchor coords -->
     <div class="panel-section">
       <div class="field-label">Anchor</div>
       <div class="coord-row">
         <span class="coord-axis">X</span>
-        <input class="coord-input" type="number" :value="sprite?.anchor.x ?? 0" disabled />
+        <NumericInput
+          class="coord-input"
+          :min="-9999" :max="9999"
+          :modelValue="anchorX"
+          @update:modelValue="v => anchorX = v"
+          @pointerup="commitAnchorPos"
+          @change="commitAnchorPos"
+        />
         <span class="coord-axis">Y</span>
-        <input class="coord-input" type="number" :value="sprite?.anchor.y ?? 0" disabled />
+        <NumericInput
+          class="coord-input"
+          :min="-9999" :max="9999"
+          :modelValue="anchorY"
+          @update:modelValue="v => anchorY = v"
+          @pointerup="commitAnchorPos"
+          @change="commitAnchorPos"
+        />
+      </div>
+    </div>
+
+    <!-- Part position (visible when a part is selected) -->
+    <div v-if="selectedPart" class="panel-section">
+      <div class="field-label">Position</div>
+      <div class="coord-row">
+        <span class="coord-axis">X</span>
+        <NumericInput
+          class="coord-input"
+          :min="-9999" :max="9999"
+          :modelValue="partX"
+          @update:modelValue="v => partX = v"
+          @pointerup="commitPartPos"
+          @change="commitPartPos"
+        />
+        <span class="coord-axis">Y</span>
+        <NumericInput
+          class="coord-input"
+          :min="-9999" :max="9999"
+          :modelValue="partY"
+          @update:modelValue="v => partY = v"
+          @pointerup="commitPartPos"
+          @change="commitPartPos"
+        />
       </div>
     </div>
 
@@ -277,21 +396,9 @@ defineExpose({ removeSelectedPart })
   gap: var(--rd-space-2);
 }
 .coord-axis { font-size: var(--rd-text-11); color: var(--rd-color-text-muted); }
-.coord-input {
+:deep(.coord-input) {
   width: 52px;
-  background: var(--rd-color-surface-3);
-  border: var(--rd-border-w) solid var(--rd-color-border);
-  border-radius: var(--rd-radius-1);
-  color: var(--rd-color-text-muted);
-  font-size: var(--rd-text-11);
-  font-family: var(--rd-font-mono);
-  padding: 2px 4px;
-  text-align: right;
-  -moz-appearance: textfield;
-  appearance: textfield;
 }
-.coord-input::-webkit-inner-spin-button,
-.coord-input::-webkit-outer-spin-button { display: none; }
 
 .parts-section { flex: 1; min-height: 0; }
 .parts-header { display: flex; align-items: center; justify-content: space-between; }

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { SpriteHistoryManager, type SpriteCommand } from '../domain/spriteHistory'
+import type { Point } from '../domain/model'
 
 // Per-sprite managers held outside reactive state (same pattern as historyStore)
 const managers = new Map<string, SpriteHistoryManager>()
@@ -42,6 +43,21 @@ export const useSpriteHistoryStore = defineStore('spriteHistory', () => {
     return cmd
   }
 
+  function beginPartDrag(spriteId: string, partIndex: number, initialPosition: Point): void {
+    manager(spriteId).beginPartDrag(partIndex, initialPosition)
+  }
+
+  function beginAnchorDrag(spriteId: string, initialAnchor: Point): void {
+    manager(spriteId).beginAnchorDrag(initialAnchor)
+  }
+
+  // Returns the committed command (null if nothing moved).
+  function commitDrag(spriteId: string, finalValue: Point): SpriteCommand | null {
+    const cmd = manager(spriteId).commitDrag(finalValue)
+    if (cmd) { undoVersion.value++; redoVersion.value++ }
+    return cmd
+  }
+
   function clearFor(spriteId: string) {
     managers.get(spriteId)?.reset()
     managers.delete(spriteId)
@@ -49,5 +65,5 @@ export const useSpriteHistoryStore = defineStore('spriteHistory', () => {
     redoVersion.value++
   }
 
-  return { canUndo, canRedo, activeSpriteId, setActiveSprite, push, undo, redo, clearFor }
+  return { canUndo, canRedo, activeSpriteId, setActiveSprite, push, undo, redo, clearFor, beginPartDrag, beginAnchorDrag, commitDrag }
 })
